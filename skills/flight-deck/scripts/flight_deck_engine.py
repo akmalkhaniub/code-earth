@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 """
-Code Earth - Planetary Topographic Semantic Zoom Engine
-Visualizes a codebase as a living, organic digital planet in a clean, modern light aesthetic:
-- Organic Tectonic Continents with topographic elevation contours (no rectangular boxes!)
-- Authentic File Extension Icon Badges (Python, TypeScript, JS, JSON, HTML, Markdown, etc.)
-- Zero Annoying Wave Emissions: Calm, serene, and professional status indicators
-- GIF-like interactive micro-sheen on hover / active state
-- Ground Code View: Sleek IDE card preview on deep zoom
-- Responsive header with live zoom percentage and active altitude indicator
-- Interactive Radar / Minimap to never lose orientation
-- Clamped camera bounds and "Fit to Screen" (cannot get lost off-screen!)
-- Ambient In-Situ Telemetry Reticles (zero screen-blocking drawers)
-- Distraction-free: bottom flight steps hidden by default in an optional toggle
+Code Earth - Unified Multi-Perspective Visualizer & Command Deck
+Features 4 Switchable Architectural Views:
+1. 🗺️ Topographic Continents: Organic elevation contours & file extension badges
+2. 🌍 3D Orbital Globe: Spherical 3D planet with latitude/longitude mesh & coordinate beacons
+3. 🏙️ 2.5D Code City: Isometric extruded skyscrapers (height = LOC, rooftops = file emblems)
+4. 🕸️ Neural Organic Graph: Force-directed dependency constellations & flowing energy cables
+
+Plus Linear-Grade Productivity Shell:
+- Command Palette (Cmd+K / /): Instant fuzzy search & fly-to navigation
+- Left Collapsible File Tree Explorer: Folder hierarchy with blast radius badges
+- Right Slide-Out Diff & Telemetry Inspector: Clickable caller graph & line-by-line diffs
+- Instant Theme Switcher: Light (Clean Paper) ↔ Dark (Deep Space Obsidian)
+- Minimalist Bottom Flight Path Replay: Step scrubber with agent reasoning
 """
 
 import os
@@ -19,6 +20,7 @@ import sys
 import json
 import ast
 import re
+import math
 import argparse
 import subprocess
 from pathlib import Path
@@ -308,11 +310,11 @@ def compute_blast_tiers(modified_files, dependents, file_events):
     return tier_map
 
 def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info, dependencies, dependents, steps, file_events, test_runs):
-    """Generates the organic topographic Code Earth canvas visualization in a clean, modern light aesthetic."""
+    """Generates the multi-perspective Code Earth workspace visualizer with 4 switchable views."""
 
     included_files = set(tier_map.keys())
     if not included_files:
-        included_files = set(list(file_data.keys())[:16])
+        included_files = set(list(file_data.keys())[:24])
 
     nodes = []
     modules = defaultdict(list)
@@ -341,6 +343,7 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
             "tier": tier,
             "added": g_data.get("added", 0),
             "deleted": g_data.get("deleted", 0),
+            "loc": len(code_lines) or 25,
             "status": g_data.get("status", "Clean"),
             "diffLines": diff_lines,
             "symbols": symbols,
@@ -372,16 +375,49 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Code Earth - Planetary Semantic Architecture</title>
+  <title>Code Earth - Multi-Perspective Visualizer</title>
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <style>
+    :root {{
+      --bg-page: #f8fafc;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --panel-glass: rgba(255, 255, 255, 0.94);
+      --panel-border: rgba(226, 232, 240, 0.95);
+      --shadow-elevation: 0 4px 20px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+      --accent-active: #0f172a;
+      --accent-active-text: #ffffff;
+      --radar-bg: rgba(248, 250, 252, 0.9);
+      --code-bg: #f8fafc;
+      --diff-add-bg: #ecfdf5;
+      --diff-add-text: #047857;
+      --diff-del-bg: #fff1f2;
+      --diff-del-text: #be123c;
+    }}
+    body.theme-dark {{
+      --bg-page: #090d16;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --panel-glass: rgba(15, 23, 42, 0.92);
+      --panel-border: rgba(51, 65, 85, 0.85);
+      --shadow-elevation: 0 6px 24px -2px rgba(0, 0, 0, 0.45);
+      --accent-active: #38bdf8;
+      --accent-active-text: #090d16;
+      --radar-bg: rgba(15, 23, 42, 0.95);
+      --code-bg: #0b0f19;
+      --diff-add-bg: rgba(6, 78, 59, 0.35);
+      --diff-add-text: #34d399;
+      --diff-del-bg: rgba(136, 19, 55, 0.35);
+      --diff-del-text: #fb7185;
+    }}
     body {{
-      background-color: #f8fafc;
-      color: #0f172a;
+      background-color: var(--bg-page);
+      color: var(--text-primary);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       margin: 0;
       overflow: hidden;
       user-select: none;
+      transition: background-color 0.25s ease, color 0.25s ease;
     }}
     canvas {{
       display: block;
@@ -391,135 +427,312 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
       cursor: grabbing;
     }}
     .panel-glass {{
-      background: rgba(255, 255, 255, 0.94);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(226, 232, 240, 0.95);
-      box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+      background: var(--panel-glass);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--panel-border);
+      box-shadow: var(--shadow-elevation);
+    }}
+    .view-btn.active {{
+      background-color: var(--accent-active);
+      color: var(--accent-active-text);
+      font-weight: 600;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }}
     ::-webkit-scrollbar {{ width: 5px; }}
     ::-webkit-scrollbar-thumb {{ background: #cbd5e1; border-radius: 4px; }}
+    body.theme-dark ::-webkit-scrollbar-thumb {{ background: #334155; }}
   </style>
 </head>
 <body class="w-screen h-screen">
 
-  <!-- TOP RESPONSIVE HEADER BAR (Never clips offscreen) -->
-  <header class="absolute top-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+  <!-- ======================================================== -->
+  <!-- TOP UNIFIED COMMAND HEADER (Responsive & Auto-Wrapping)  -->
+  <!-- ======================================================== -->
+  <header class="absolute top-3 left-3 right-3 z-30 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
     
-    <!-- Title & Condition Badge -->
-    <div class="panel-glass rounded-full px-4 py-2 flex items-center gap-3 pointer-events-auto max-w-full">
+    <!-- Left: Brand & Telemetry Condition Badges -->
+    <div class="panel-glass rounded-full px-4 py-2 flex items-center gap-3 pointer-events-auto">
       <div class="flex items-center gap-2">
-        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_6px_#10b981]"></span>
-        <span class="font-bold text-xs tracking-wider text-slate-900 uppercase">Code Earth</span>
-        <span class="text-slate-300 text-xs">/</span>
-        <span class="text-slate-600 text-xs font-mono truncate max-w-[140px]" title="{repo_name}">{repo_name}</span>
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]"></span>
+        <span class="font-bold text-xs tracking-wider uppercase">Code Earth</span>
+        <span class="text-slate-400 text-xs">/</span>
+        <span class="text-xs font-mono opacity-80 truncate max-w-[130px]" title="{repo_name}">{repo_name}</span>
       </div>
 
-      <div class="h-4 w-px bg-slate-200"></div>
+      <div class="h-4 w-px bg-slate-300 dark:bg-slate-700"></div>
 
       <!-- Quick Metrics -->
       <div class="flex items-center gap-3 text-xs">
-        <div class="flex items-center gap-1.5" title="Direct Changes">
+        <div class="flex items-center gap-1.5 cursor-pointer" onclick="filterByTier(0)" title="Filter direct changes">
           <span class="w-2 h-2 rounded-full bg-rose-500"></span>
-          <span class="font-bold text-rose-600" id="stat-epicenter">0</span>
-          <span class="text-slate-500 text-[11px] hidden sm:inline">Epicenter</span>
+          <span class="font-bold text-rose-500" id="stat-epicenter">0</span>
+          <span class="text-[11px] opacity-70 hidden sm:inline">Epicenter</span>
         </div>
-        <div class="flex items-center gap-1.5" title="Direct Dependents">
+        <div class="flex items-center gap-1.5 cursor-pointer" onclick="filterByTier(1)" title="Filter direct ripple dependents">
           <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-          <span class="font-bold text-amber-600" id="stat-ripple">0</span>
-          <span class="text-slate-500 text-[11px] hidden sm:inline">Ripple</span>
+          <span class="font-bold text-amber-500" id="stat-ripple">0</span>
+          <span class="text-[11px] opacity-70 hidden sm:inline">Ripple</span>
         </div>
-        <div class="flex items-center gap-1.5" title="Safe Modules">
+        <div class="flex items-center gap-1.5 cursor-pointer" onclick="filterByTier(2)" title="Safe bedrock files">
           <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-          <span class="font-bold text-emerald-600" id="stat-safe">0</span>
-          <span class="text-slate-500 text-[11px] hidden sm:inline">Safe</span>
+          <span class="font-bold text-emerald-500" id="stat-safe">0</span>
+          <span class="text-[11px] opacity-70 hidden sm:inline">Safe</span>
         </div>
       </div>
     </div>
 
-    <!-- Altitude, Live Zoom % & Camera Controls -->
-    <div class="panel-glass rounded-full px-2.5 py-1.5 flex items-center gap-1 pointer-events-auto">
-      <button id="btnOrbit" onclick="setAltitude(0.28)" class="px-2.5 py-1 rounded-full text-xs font-medium transition text-slate-700 hover:bg-slate-100" title="Planet Orbit">
-        Orbit
+    <!-- Center: 4-MODE PERSPECTIVE SWITCHER -->
+    <div class="panel-glass rounded-full p-1 flex items-center gap-1 pointer-events-auto shadow-md">
+      <button id="viewBtnContinents" onclick="setViewMode('continents')" class="view-btn active px-3 py-1.5 rounded-full text-xs transition flex items-center gap-1.5" title="Topographic Continents View">
+        <span>🗺️</span>
+        <span class="hidden md:inline">Continents</span>
       </button>
-      <button id="btnContinent" onclick="setAltitude(0.85)" class="px-2.5 py-1 rounded-full text-xs font-medium transition text-slate-700 hover:bg-slate-100" title="Module Continent">
-        Continent
+      <button id="viewBtnGlobe" onclick="setViewMode('globe')" class="view-btn px-3 py-1.5 rounded-full text-xs transition flex items-center gap-1.5 opacity-80 hover:opacity-100" title="3D Orbital Planet View">
+        <span>🌍</span>
+        <span class="hidden md:inline">3D Globe</span>
       </button>
-      <button id="btnCode" onclick="setAltitude(2.4)" class="px-2.5 py-1 rounded-full text-xs font-medium transition text-slate-700 hover:bg-slate-100" title="Ground Code View">
-        Code
+      <button id="viewBtnCity" onclick="setViewMode('city')" class="view-btn px-3 py-1.5 rounded-full text-xs transition flex items-center gap-1.5 opacity-80 hover:opacity-100" title="2.5D Isometric Code City View">
+        <span>🏙️</span>
+        <span class="hidden md:inline">Code City</span>
+      </button>
+      <button id="viewBtnGraph" onclick="setViewMode('graph')" class="view-btn px-3 py-1.5 rounded-full text-xs transition flex items-center gap-1.5 opacity-80 hover:opacity-100" title="Force-Directed Dependency Constellations">
+        <span>🕸️</span>
+        <span class="hidden md:inline">Neural Graph</span>
+      </button>
+    </div>
+
+    <!-- Right: Command Shell, Explorer, Theme & Zoom Controls -->
+    <div class="panel-glass rounded-full px-2.5 py-1.5 flex items-center gap-1.5 pointer-events-auto">
+      
+      <!-- Command Palette Trigger (Cmd+K) -->
+      <button onclick="toggleCommandPalette()" class="px-2.5 py-1 rounded-full text-xs font-medium hover:bg-slate-200/50 dark:hover:bg-slate-800 transition flex items-center gap-1.5" title="Search Files (Ctrl+K or /)">
+        <span>🔍</span>
+        <span class="hidden lg:inline text-[11px]">Search</span>
+        <kbd class="hidden sm:inline text-[9px] px-1 py-0.5 rounded bg-slate-200/60 dark:bg-slate-800 font-mono">/</kbd>
       </button>
 
-      <div class="h-4 w-px bg-slate-200 mx-0.5"></div>
+      <!-- Left File Explorer Toggle -->
+      <button id="btnToggleExplorer" onclick="toggleExplorer()" class="px-2.5 py-1 rounded-full text-xs font-medium hover:bg-slate-200/50 dark:hover:bg-slate-800 transition flex items-center gap-1" title="Toggle File Tree (B)">
+        <span>📁</span>
+        <span class="hidden lg:inline text-[11px]">Files</span>
+      </button>
+
+      <div class="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-0.5"></div>
 
       <!-- Live Zoom Level Badge -->
-      <span id="zoomPercent" class="font-mono text-[11px] font-bold text-slate-700 min-w-[38px] text-center px-1" title="Current Zoom">
+      <span id="zoomPercent" class="font-mono text-[11px] font-bold min-w-[38px] text-center px-1" title="Current Zoom Scale">
         35%
       </span>
 
-      <button onclick="zoomDelta(1.25)" class="w-7 h-7 flex items-center justify-center hover:bg-slate-100 text-slate-700 rounded-full text-xs font-bold" title="Zoom In">
+      <!-- Camera Zoom Actions -->
+      <button onclick="zoomDelta(1.25)" class="w-7 h-7 flex items-center justify-center hover:bg-slate-200/50 dark:hover:bg-slate-800 rounded-full text-xs font-bold" title="Zoom In (+)">
         +
       </button>
-      <button onclick="zoomDelta(0.8)" class="w-7 h-7 flex items-center justify-center hover:bg-slate-100 text-slate-700 rounded-full text-xs font-bold" title="Zoom Out">
+      <button onclick="zoomDelta(0.8)" class="w-7 h-7 flex items-center justify-center hover:bg-slate-200/50 dark:hover:bg-slate-800 rounded-full text-xs font-bold" title="Zoom Out (-)">
         -
       </button>
-      <button onclick="fitToScreen()" class="px-2 py-1 flex items-center gap-1 hover:bg-slate-100 text-slate-700 rounded-full text-xs font-medium" title="Center & Fit All to Screen">
+      <button onclick="fitToScreen()" class="px-2 py-1 flex items-center gap-1 hover:bg-slate-200/50 dark:hover:bg-slate-800 rounded-full text-xs font-medium" title="Center & Fit View">
         <span>🎯</span>
         <span class="hidden md:inline text-[11px]">Center</span>
       </button>
-      <button onclick="toggleFullScreen()" class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-full text-xs font-medium transition ml-0.5" title="Fullscreen (F11)">
+
+      <div class="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-0.5"></div>
+
+      <!-- Light / Dark Theme Switcher -->
+      <button id="themeToggleBtn" onclick="toggleTheme()" class="w-7 h-7 flex items-center justify-center hover:bg-slate-200/50 dark:hover:bg-slate-800 rounded-full text-xs transition" title="Toggle Light/Dark Theme">
+        🌓
+      </button>
+
+      <!-- Fullscreen Toggle -->
+      <button onclick="toggleFullScreen()" class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 dark:bg-sky-500 dark:hover:bg-sky-400 text-white dark:text-slate-950 rounded-full text-xs font-medium transition" title="Fullscreen (F11)">
         ⛶
       </button>
     </div>
   </header>
 
-  <!-- 100% CLEAN CANVAS -->
+  <!-- ======================================================== -->
+  <!-- MAIN INTERACTIVE HARDWARE-ACCELERATED CANVAS             -->
+  <!-- ======================================================== -->
   <canvas id="earthCanvas" class="w-full h-full"></canvas>
 
-  <!-- BOTTOM-LEFT RADAR / MINIMAP (Never lose your position on the planet) -->
-  <div id="radarWidget" class="absolute bottom-3 left-3 z-20 panel-glass rounded-2xl p-2 shadow-lg pointer-events-auto flex flex-col gap-1 transition-opacity duration-200 hover:opacity-100 opacity-90">
-    <div class="flex items-center justify-between px-1">
-      <span class="text-[9px] font-bold uppercase tracking-wider text-slate-500">Radar</span>
-      <span class="text-[8px] text-slate-400 font-mono">Click to Fly</span>
+  <!-- ======================================================== -->
+  <!-- LEFT COLLAPSIBLE FILE TREE EXPLORER (Linear / VS Code)   -->
+  <!-- ======================================================== -->
+  <aside id="explorerPanel" class="fixed top-16 left-3 bottom-14 w-72 panel-glass rounded-2xl p-3 shadow-2xl transition-all duration-300 -translate-x-[115%] pointer-events-auto z-20 flex flex-col gap-2">
+    <div class="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+      <div class="flex items-center gap-2">
+        <span class="font-bold text-xs uppercase tracking-wider">Repository Files</span>
+        <span id="explorerCount" class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-200 dark:bg-slate-800">0</span>
+      </div>
+      <button onclick="toggleExplorer()" class="opacity-60 hover:opacity-100 text-sm p-1">✕</button>
     </div>
-    <canvas id="minimapCanvas" width="130" height="85" class="rounded-xl bg-slate-50/80 cursor-crosshair border border-slate-200"></canvas>
+
+    <!-- Filter Search in Explorer -->
+    <input id="explorerSearch" type="text" placeholder="Filter files..." 
+           oninput="filterExplorerList(this.value)"
+           class="w-full px-2.5 py-1.5 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-sky-500">
+
+    <!-- Scrollable Tree List -->
+    <div id="explorerList" class="flex-1 overflow-y-auto space-y-1 pr-1 text-xs">
+      <!-- Injected dynamically -->
+    </div>
+  </aside>
+
+  <!-- ======================================================== -->
+  <!-- RIGHT SLIDE-OUT DIFF & TELEMETRY INSPECTOR               -->
+  <!-- ======================================================== -->
+  <aside id="inspectorPanel" class="fixed top-16 right-3 bottom-14 w-96 panel-glass rounded-2xl p-4 shadow-2xl transition-all duration-300 translate-x-[115%] pointer-events-auto z-20 flex flex-col gap-3">
+    <!-- Header -->
+    <div class="flex items-start justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+      <div class="flex items-center gap-2.5">
+        <div id="insBadge" class="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs text-white shadow-sm">
+          PY
+        </div>
+        <div>
+          <h2 id="insTitle" class="font-bold text-xs truncate max-w-[220px]" title="">file_name.py</h2>
+          <p id="insDir" class="text-[10px] opacity-60 font-mono truncate max-w-[220px]">src/path</p>
+        </div>
+      </div>
+      <button onclick="closeInspector()" class="opacity-60 hover:opacity-100 text-sm p-1">✕</button>
+    </div>
+
+    <!-- Status & Metrics Pills -->
+    <div class="flex items-center gap-2">
+      <span id="insTier" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400">
+        ⚡ EPICENTER
+      </span>
+      <span id="insDiffStat" class="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
+        +14 -2
+      </span>
+      <span id="insLoc" class="text-[10px] font-mono opacity-60">
+        84 LOC
+      </span>
+    </div>
+
+    <!-- Tabs: Unified Diff vs Dependency Map -->
+    <div class="flex border-b border-slate-200 dark:border-slate-800 text-xs">
+      <button id="insTabDiff" onclick="switchInspectorTab('diff')" class="px-3 py-1 font-semibold border-b-2 border-sky-500">
+        Diff & Code
+      </button>
+      <button id="insTabDeps" onclick="switchInspectorTab('deps')" class="px-3 py-1 opacity-70 hover:opacity-100">
+        Callers & Imports
+      </button>
+    </div>
+
+    <!-- Content: Diff View -->
+    <div id="insContentDiff" class="flex-1 overflow-y-auto pr-1 space-y-1 font-mono text-[10px]">
+      <div id="insDiffLines" class="rounded-xl p-2 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 min-h-[160px]">
+        <!-- Unified diff lines injected dynamically -->
+      </div>
+    </div>
+
+    <!-- Content: Callers & Dependencies -->
+    <div id="insContentDeps" class="flex-1 overflow-y-auto pr-1 space-y-3 hidden text-xs">
+      <div>
+        <span class="text-[10px] uppercase font-bold tracking-wider opacity-60 block mb-1">Imported by (Callers):</span>
+        <div id="insInboundList" class="space-y-1">
+          <!-- Injected dynamically -->
+        </div>
+      </div>
+      <div>
+        <span class="text-[10px] uppercase font-bold tracking-wider opacity-60 block mb-1">Direct Imports:</span>
+        <div id="insOutboundList" class="space-y-1">
+          <!-- Injected dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Action Footer -->
+    <div class="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+      <button id="insFlyToBtn" class="px-3 py-1.5 rounded-full text-xs font-semibold bg-sky-500 hover:bg-sky-400 text-white transition flex items-center gap-1.5 shadow-sm">
+        <span>🎯</span> <span>Focus Camera</span>
+      </button>
+      <span id="insFileTypeDesc" class="text-[10px] opacity-60">Python Module</span>
+    </div>
+  </aside>
+
+  <!-- ======================================================== -->
+  <!-- COMMAND PALETTE MODAL (Cmd+K / /)                        -->
+  <!-- ======================================================== -->
+  <div id="commandPalette" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm hidden flex items-start justify-center pt-24 px-4 pointer-events-auto" onclick="onPaletteBackdrop(event)">
+    <div class="panel-glass rounded-2xl max-w-lg w-full p-4 shadow-2xl flex flex-col gap-3 animate-in fade-in zoom-in-95 duration-150" onclick="event.stopPropagation()">
+      <div class="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-800">
+        <span class="text-slate-400">🔍</span>
+        <input id="paletteInput" type="text" placeholder="Search files, extensions, blast tiers..." 
+               class="flex-1 bg-transparent border-none text-sm focus:outline-none placeholder:text-slate-400"
+               oninput="onPaletteSearch(this.value)" onkeydown="onPaletteKeyDown(event)">
+        <kbd class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-500">ESC</kbd>
+      </div>
+
+      <!-- Quick Filter Chips -->
+      <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
+        <button onclick="setPaletteFilter('all')" class="palette-chip px-2 py-0.5 rounded-full bg-slate-900 text-white dark:bg-sky-500 dark:text-slate-950 font-medium">All</button>
+        <button onclick="setPaletteFilter('epicenter')" class="palette-chip px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">⚡ Epicenter</button>
+        <button onclick="setPaletteFilter('ripple')" class="palette-chip px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">▲ Ripple</button>
+        <button onclick="setPaletteFilter('py')" class="palette-chip px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">Python</button>
+        <button onclick="setPaletteFilter('ts')" class="palette-chip px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">TypeScript</button>
+      </div>
+
+      <!-- Results list -->
+      <div id="paletteResults" class="max-h-64 overflow-y-auto space-y-1 text-xs pr-1">
+        <!-- Results injected dynamically -->
+      </div>
+    </div>
   </div>
 
-  <!-- OPTIONAL FLOATING DRAWER FOR AGENT FLIGHT PATH (Hidden by default, zero clutter) -->
+  <!-- ======================================================== -->
+  <!-- BOTTOM-LEFT RADAR / MINIMAP                              -->
+  <!-- ======================================================== -->
+  <div id="radarWidget" class="absolute bottom-3 left-3 z-20 panel-glass rounded-2xl p-2 shadow-lg pointer-events-auto flex flex-col gap-1 transition-opacity duration-200 hover:opacity-100 opacity-90">
+    <div class="flex items-center justify-between px-1">
+      <span class="text-[9px] font-bold uppercase tracking-wider opacity-60">Radar</span>
+      <span class="text-[8px] opacity-40 font-mono">Click to Fly</span>
+    </div>
+    <canvas id="minimapCanvas" width="130" height="85" class="rounded-xl cursor-crosshair border border-slate-200 dark:border-slate-800 bg-[var(--radar-bg)]"></canvas>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- OPTIONAL FLOATING FLIGHT HISTORY DRAWER                  -->
+  <!-- ======================================================== -->
   <aside id="historyDrawer" class="fixed bottom-14 right-4 max-w-sm w-full panel-glass rounded-2xl p-4 shadow-2xl transition-all duration-300 translate-y-[200%] pointer-events-auto z-30">
-    <div class="flex items-center justify-between pb-2 border-b border-slate-200">
+    <div class="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
       <div class="flex items-center gap-2">
-        <span class="text-xs font-bold uppercase tracking-wider text-slate-800">Flight Path Replay</span>
-        <span id="stepCount" class="text-[11px] font-mono text-slate-500">0 / 0</span>
+        <span class="text-xs font-bold uppercase tracking-wider">Flight Path Replay</span>
+        <span id="stepCount" class="text-[11px] font-mono opacity-60">0 / 0</span>
       </div>
-      <button onclick="toggleHistoryDrawer()" class="text-slate-400 hover:text-slate-700 text-sm p-1">✕</button>
+      <button onclick="toggleHistoryDrawer()" class="opacity-60 hover:opacity-100 text-sm p-1">✕</button>
     </div>
     
     <div class="py-3">
       <div class="flex items-center gap-2 mb-2">
-        <span id="flightStep" class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-mono text-[10px] font-bold">Step 1</span>
-        <span id="flightAction" class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 uppercase">IDLE</span>
+        <span id="flightStep" class="px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 font-mono text-[10px] font-bold">Step 1</span>
+        <span id="flightAction" class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 opacity-70 uppercase">IDLE</span>
       </div>
-      <p id="flightThought" class="text-xs text-slate-600 line-clamp-2">Replaying agent actions across repository...</p>
+      <p id="flightThought" class="text-xs opacity-80 line-clamp-2">Replaying agent actions across repository...</p>
     </div>
 
     <div class="flex items-center gap-3 pt-1">
-      <button id="btnPlay" onclick="togglePlay()" class="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs transition hover:bg-slate-800">
+      <button id="btnPlay" onclick="togglePlay()" class="w-8 h-8 rounded-full bg-slate-900 text-white dark:bg-sky-500 dark:text-slate-950 flex items-center justify-center font-bold text-xs transition">
         ▶
       </button>
       <input id="timeline" type="range" min="0" max="1" value="0" step="1" 
-             class="flex-1 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-900 focus:outline-none">
-      <button onclick="stepDelta(-1)" class="p-1 hover:text-slate-900 text-slate-500 text-xs">◀</button>
-      <button onclick="stepDelta(1)" class="p-1 hover:text-slate-900 text-slate-500 text-xs">▶</button>
+             class="flex-1 h-1 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500 focus:outline-none">
+      <button onclick="stepDelta(-1)" class="p-1 opacity-60 hover:opacity-100 text-xs">◀</button>
+      <button onclick="stepDelta(1)" class="p-1 opacity-60 hover:opacity-100 text-xs">▶</button>
     </div>
   </aside>
 
-  <!-- BOTTOM STATUS PILL & HISTORY TOGGLE (Minimalist, unobtrusive) -->
+  <!-- Bottom Trigger Pill for Flight History -->
   <footer class="absolute bottom-3 right-4 z-20 pointer-events-none">
-    <button onclick="toggleHistoryDrawer()" class="panel-glass rounded-full px-3.5 py-1.5 text-xs text-slate-700 font-medium hover:bg-white transition flex items-center gap-1.5 pointer-events-auto shadow-md">
+    <button onclick="toggleHistoryDrawer()" class="panel-glass rounded-full px-3.5 py-1.5 text-xs font-medium hover:bg-white dark:hover:bg-slate-800 transition flex items-center gap-1.5 pointer-events-auto shadow-md">
       <span>⏱️</span>
       <span>Flight History</span>
     </button>
   </footer>
 
+  <!-- ======================================================== -->
+  <!-- MULTI-PERSPECTIVE CANVAS SCRIPT ENGINE                   -->
+  <!-- ======================================================== -->
   <script>
     const DATA = {payload_json};
 
@@ -711,7 +924,10 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
       clampCamera();
     }});
 
-    // Camera State
+    // View Mode State
+    let currentViewMode = "continents"; // continents | globe | city | graph
+
+    // Camera & Coordinates State
     let scale = 0.35;
     let panX = width / 2;
     let panY = height / 2;
@@ -719,6 +935,19 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
     let startX = 0, startY = 0;
     let hoveredNode = null;
     let activeNode = null;
+
+    // 3D Globe Rotation State
+    let globeRotX = 0.25;
+    let globeRotY = 0.0;
+    let globeLastMouseX = 0;
+    let globeLastMouseY = 0;
+
+    // Force Graph Coordinates State
+    const graphCoords = new Map();
+    const cityCoords = new Map();
+    const globeCoords = new Map();
+    const continentCoords = new Map();
+    const screenNodeMap = new Map();
 
     // Timeline State
     let currentStepIdx = 0;
@@ -733,18 +962,18 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
     document.getElementById("stat-ripple").textContent = ripCount;
     document.getElementById("stat-safe").textContent = safeCount;
 
-    // Topographic Continents Layout
+    // ==========================================
+    // PRECOMPUTE COORDINATES ACROSS ALL 4 MODES
+    // ==========================================
     const moduleList = Object.keys(DATA.modules);
     const continentLayout = new Map();
-    const nodeCoords = new Map();
-
     const cols = Math.ceil(Math.sqrt(moduleList.length || 1));
     const continentSpacingX = 900;
     const continentSpacingY = 750;
 
     let worldMinX = Infinity, worldMaxX = -Infinity, worldMinY = Infinity, worldMaxY = -Infinity;
 
-    // Generate organic coastline polygons with harmonic noise
+    // 1. Continents & City Coordinates
     moduleList.forEach((modName, mi) => {{
       const col = mi % cols;
       const row = Math.floor(mi / cols);
@@ -778,25 +1007,127 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
         }})
       }});
 
+      // Continents node positions
       files.forEach((fpath, fi) => {{
         const angle = (fi / files.length) * Math.PI * 2 + (mi * 0.4);
         const dist = Math.min(baseRadius - 60, (fi + 1) * 50);
-        nodeCoords.set(fpath, {{
+        continentCoords.set(fpath, {{
           x: cx + Math.cos(angle) * dist,
           y: cy + Math.sin(angle) * dist
+        }});
+
+        // City grid positions
+        const cityCol = fi % 4;
+        const cityRow = Math.floor(fi / 4);
+        cityCoords.set(fpath, {{
+          x: cx - 120 + cityCol * 80,
+          y: cy - 120 + cityRow * 80,
+          loc: DATA.nodes.find(n => n.id === fpath)?.loc || 30
         }});
       }});
     }});
 
-    // Ensure fallback bounds if empty
+    // 2. 3D Globe Spherical Coordinates (lat/lon)
+    DATA.nodes.forEach((node, idx) => {{
+      const phi = Math.acos(-1 + (2 * idx) / Math.max(1, DATA.nodes.length));
+      const theta = Math.sqrt(DATA.nodes.length * Math.PI) * phi;
+      globeCoords.set(node.id, {{
+        lat: phi - Math.PI / 2,
+        lon: theta
+      }});
+    }});
+
+    // 3. Neural Force-Directed Graph Layout Simulation
+    DATA.nodes.forEach((node, idx) => {{
+      const angle = (idx / DATA.nodes.length) * Math.PI * 2;
+      const radius = 250 + (idx % 3) * 120;
+      graphCoords.set(node.id, {{
+        x: Math.cos(angle) * radius,
+        y: Math.sin(angle) * radius,
+        vx: 0, vy: 0
+      }});
+    }});
+
+    // Pre-relax force layout
+    for (let iter = 0; iter < 90; iter++) {{
+      // Repulsion
+      DATA.nodes.forEach(n1 => {{
+        const p1 = graphCoords.get(n1.id);
+        DATA.nodes.forEach(n2 => {{
+          if (n1.id === n2.id) return;
+          const p2 = graphCoords.get(n2.id);
+          const dx = p1.x - p2.x;
+          const dy = p1.y - p2.y;
+          const dist = Math.max(15, Math.hypot(dx, dy));
+          if (dist < 380) {{
+            const force = (1200 / (dist * dist));
+            p1.vx += (dx / dist) * force;
+            p1.vy += (dy / dist) * force;
+          }}
+        }});
+      }});
+
+      // Link attraction
+      DATA.links.forEach(link => {{
+        const p1 = graphCoords.get(link.source);
+        const p2 = graphCoords.get(link.target);
+        if (p1 && p2) {{
+          const dx = p2.x - p1.x;
+          const dy = p2.y - p1.y;
+          const dist = Math.max(1, Math.hypot(dx, dy));
+          const force = (dist - 140) * 0.05;
+          p1.vx += (dx / dist) * force;
+          p1.vy += (dy / dist) * force;
+          p2.vx -= (dx / dist) * force;
+          p2.vy -= (dy / dist) * force;
+        }}
+      }});
+
+      // Gravity & Damping
+      DATA.nodes.forEach(n => {{
+        const p = graphCoords.get(n.id);
+        p.vx -= p.x * 0.015;
+        p.vy -= p.y * 0.015;
+        p.x += p.vx * 0.7;
+        p.y += p.vy * 0.7;
+        p.vx *= 0.85;
+        p.vy *= 0.85;
+      }});
+    }}
+
     if (worldMinX === Infinity) {{
       worldMinX = -400; worldMaxX = 400; worldMinY = -300; worldMaxY = 300;
     }}
 
     let animTime = 0;
 
-    // CAMERA CLAMPING: Prevents the world from ever going off screen!
+    // ==========================================
+    // VIEW SWITCHER DISPATCHER
+    // ==========================================
+    function setViewMode(mode) {{
+      currentViewMode = mode;
+      document.querySelectorAll(".view-btn").forEach(b => b.classList.remove("active"));
+      if (mode === "continents") document.getElementById("viewBtnContinents")?.classList.add("active");
+      if (mode === "globe") document.getElementById("viewBtnGlobe")?.classList.add("active");
+      if (mode === "city") document.getElementById("viewBtnCity")?.classList.add("active");
+      if (mode === "graph") document.getElementById("viewBtnGraph")?.classList.add("active");
+
+      if (mode === "globe") {{
+        scale = 1.0;
+        panX = width / 2;
+        panY = height / 2;
+      }} else if (mode === "city") {{
+        scale = 0.75;
+      }} else if (mode === "graph") {{
+        scale = 0.85;
+      }}
+      clampCamera();
+      updateZoomUI();
+    }}
+
+    // CAMERA CLAMPING
     function clampCamera() {{
+      if (currentViewMode === "globe") return; // Globe stays centered
       const screenLeft = panX + worldMinX * scale;
       const screenRight = panX + worldMaxX * scale;
       const screenTop = panY + worldMinY * scale;
@@ -809,32 +1140,21 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
       if (screenTop > height - minMargin) panY = (height - minMargin) - worldMinY * scale;
     }}
 
-    // UPDATE ZOOM & ACTIVE ALTITUDE INDICATOR
     function updateZoomUI() {{
       const zPill = document.getElementById("zoomPercent");
       if (zPill) zPill.textContent = Math.round(scale * 100) + "%";
-
-      const bOrb = document.getElementById("btnOrbit");
-      const bCont = document.getElementById("btnContinent");
-      const bCode = document.getElementById("btnCode");
-
-      if (bOrb && bCont && bCode) {{
-        [bOrb, bCont, bCode].forEach(b => {{
-          b.className = "px-2.5 py-1 rounded-full text-xs font-medium transition text-slate-700 hover:bg-slate-100";
-        }});
-
-        if (scale < 0.55) {{
-          bOrb.className = "px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-900 text-white shadow-sm";
-        }} else if (scale < 1.7) {{
-          bCont.className = "px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-900 text-white shadow-sm";
-        }} else {{
-          bCode.className = "px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-900 text-white shadow-sm";
-        }}
-      }}
     }}
 
-    // FIT TO SCREEN: Instantly frames all continents centered with comfort margin
     function fitToScreen() {{
+      if (currentViewMode === "globe") {{
+        panX = width / 2;
+        panY = height / 2;
+        globeRotX = 0.25;
+        globeRotY = 0.0;
+        scale = 1.0;
+        updateZoomUI();
+        return;
+      }}
       const pad = 140;
       const wSpan = (worldMaxX - worldMinX) + pad * 2;
       const hSpan = (worldMaxY - worldMinY) + pad * 2;
@@ -847,26 +1167,29 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
       panX = width / 2 - midX * scale;
       panY = height / 2 - midY * scale;
 
-      activeNode = null;
       clampCamera();
       updateZoomUI();
     }}
 
-    // Mouse Navigation
+    // ==========================================
+    // MOUSE & TOUCH EVENT LISTENERS
+    // ==========================================
     canvas.addEventListener("wheel", (e) => {{
       e.preventDefault();
       const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
       const mouseX = e.clientX;
       const mouseY = e.clientY;
 
-      const worldX = (mouseX - panX) / scale;
-      const worldY = (mouseY - panY) / scale;
-
-      scale = Math.min(Math.max(scale * zoomFactor, 0.12), 6.0);
-      panX = mouseX - worldX * scale;
-      panY = mouseY - worldY * scale;
-
-      clampCamera();
+      if (currentViewMode === "globe") {{
+        scale = Math.min(Math.max(scale * zoomFactor, 0.4), 2.8);
+      }} else {{
+        const worldX = (mouseX - panX) / scale;
+        const worldY = (mouseY - panY) / scale;
+        scale = Math.min(Math.max(scale * zoomFactor, 0.12), 6.0);
+        panX = mouseX - worldX * scale;
+        panY = mouseY - worldY * scale;
+        clampCamera();
+      }}
       updateZoomUI();
     }});
 
@@ -874,29 +1197,35 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
       isDragging = true;
       startX = e.clientX - panX;
       startY = e.clientY - panY;
+      globeLastMouseX = e.clientX;
+      globeLastMouseY = e.clientY;
     }});
 
     window.addEventListener("mousemove", (e) => {{
       if (isDragging) {{
-        panX = e.clientX - startX;
-        panY = e.clientY - startY;
-        clampCamera();
+        if (currentViewMode === "globe") {{
+          const dx = e.clientX - globeLastMouseX;
+          const dy = e.clientY - globeLastMouseY;
+          globeRotY += dx * 0.007;
+          globeRotX = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, globeRotX + dy * 0.007));
+          globeLastMouseX = e.clientX;
+          globeLastMouseY = e.clientY;
+        }} else {{
+          panX = e.clientX - startX;
+          panY = e.clientY - startY;
+          clampCamera();
+        }}
       }} else {{
-        const worldX = (e.clientX - panX) / scale;
-        const worldY = (e.clientY - panY) / scale;
+        // Screen-space hit testing across all modes
         let found = null;
-
-        for (const n of DATA.nodes) {{
-          const pt = nodeCoords.get(n.id);
-          if (!pt) continue;
-          const distSq = (worldX - pt.x) ** 2 + (worldY - pt.y) ** 2;
-          const hitRadius = scale > 1.7 ? 190 : 32;
-          if (distSq <= hitRadius ** 2) {{
-            found = n;
+        for (const [nid, sc] of screenNodeMap.entries()) {{
+          if (!sc.visible) continue;
+          const d = Math.hypot(e.clientX - sc.x, e.clientY - sc.y);
+          if (d <= sc.radius) {{
+            found = DATA.nodes.find(n => n.id === nid);
             break;
           }}
         }}
-
         hoveredNode = found;
         canvas.style.cursor = hoveredNode ? "pointer" : (isDragging ? "grabbing" : "grab");
       }}
@@ -908,34 +1237,17 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
 
     canvas.addEventListener("click", () => {{
       if (hoveredNode) {{
-        activeNode = activeNode === hoveredNode ? null : hoveredNode;
-      }} else {{
-        activeNode = null;
+        selectNode(hoveredNode);
       }}
     }});
 
-    // Double-click to focus and zoom in
-    canvas.addEventListener("dblclick", (e) => {{
+    canvas.addEventListener("dblclick", () => {{
       if (hoveredNode) {{
-        const pt = nodeCoords.get(hoveredNode.id);
-        if (pt) {{
-          scale = 2.4;
-          panX = width / 2 - pt.x * scale;
-          panY = height / 2 - pt.y * scale;
-          activeNode = hoveredNode;
-          clampCamera();
-          updateZoomUI();
-        }}
+        flyToNode(hoveredNode.id);
       }} else {{
         fitToScreen();
       }}
     }});
-
-    function setAltitude(s) {{
-      scale = s;
-      clampCamera();
-      updateZoomUI();
-    }}
 
     function zoomDelta(factor) {{
       scale = Math.min(Math.max(scale * factor, 0.12), 6.0);
@@ -953,7 +1265,350 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
       }}
     }}
 
+    // ==========================================
+    // THEME SWITCHER (Light ↔ Obsidian Dark)
+    // ==========================================
+    let isDarkTheme = localStorage.getItem("code_earth_theme") === "dark";
+    if (isDarkTheme) document.body.classList.add("theme-dark");
+
+    function toggleTheme() {{
+      isDarkTheme = !isDarkTheme;
+      if (isDarkTheme) {{
+        document.body.classList.add("theme-dark");
+        localStorage.setItem("code_earth_theme", "dark");
+      }} else {{
+        document.body.classList.remove("theme-dark");
+        localStorage.setItem("code_earth_theme", "light");
+      }}
+    }}
+
+    // ==========================================
+    // INSPECTOR DRAWER CONTROLLER
+    // ==========================================
+    function selectNode(node) {{
+      activeNode = node;
+      const panel = document.getElementById("inspectorPanel");
+      if (!panel || !node) return;
+
+      const ftype = getFileType(node.name || node.id);
+      document.getElementById("insTitle").textContent = node.name;
+      document.getElementById("insTitle").title = node.id;
+      document.getElementById("insDir").textContent = node.dir;
+      document.getElementById("insFileTypeDesc").textContent = ftype.name;
+
+      const badge = document.getElementById("insBadge");
+      badge.textContent = ftype.label;
+      badge.style.backgroundColor = ftype.bg;
+      badge.style.color = ftype.color;
+
+      const tierPill = document.getElementById("insTier");
+      if (node.tier === 0) {{
+        tierPill.textContent = "⚡ EPICENTER (ACTIVE EDIT)";
+        tierPill.className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400";
+      }} else if (node.tier === 1) {{
+        tierPill.textContent = "▲ RIPPLE ZONE";
+        tierPill.className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400";
+      }} else {{
+        tierPill.textContent = "✓ SAFE BEDROCK";
+        tierPill.className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400";
+      }}
+
+      document.getElementById("insDiffStat").textContent = `+${{node.added}} -${{node.deleted}}`;
+      document.getElementById("insLoc").textContent = `${{node.loc}} LOC`;
+      document.getElementById("insFlyToBtn").onclick = () => flyToNode(node.id);
+
+      // Populate Diff
+      const diffContainer = document.getElementById("insDiffLines");
+      diffContainer.innerHTML = "";
+      const lines = (node.diffLines && node.diffLines.length) ? node.diffLines : (node.codeLines || []).slice(0, 30);
+      if (!lines.length) {{
+        diffContainer.innerHTML = "<p class='opacity-50 text-[11px] p-2'>No active diffs. Clean working tree.</p>";
+      }} else {{
+        lines.forEach(l => {{
+          const row = document.createElement("div");
+          row.className = "px-1.5 py-0.5 rounded flex items-start gap-2 text-[10px]";
+          if (l.type === "add") {{
+            row.style.backgroundColor = "var(--diff-add-bg)";
+            row.style.color = "var(--diff-add-text)";
+            row.innerHTML = `<span class='font-bold'>+</span><span class='break-all'>${{escapeHtml(l.text)}}</span>`;
+          }} else if (l.type === "del") {{
+            row.style.backgroundColor = "var(--diff-del-bg)";
+            row.style.color = "var(--diff-del-text)";
+            row.innerHTML = `<span class='font-bold'>-</span><span class='break-all'>${{escapeHtml(l.text)}}</span>`;
+          }} else {{
+            row.innerHTML = `<span class='opacity-40'> </span><span class='opacity-70 break-all'>${{escapeHtml(l.text !== undefined ? l.text : l)}}</span>`;
+          }}
+          diffContainer.appendChild(row);
+        }});
+      }}
+
+      // Populate Inbound Callers & Outbound Imports
+      const inList = document.getElementById("insInboundList");
+      const outList = document.getElementById("insOutboundList");
+      inList.innerHTML = "";
+      outList.innerHTML = "";
+
+      if (node.inbound && node.inbound.length) {{
+        node.inbound.forEach(depId => {{
+          const btn = document.createElement("button");
+          btn.className = "w-full text-left px-2 py-1 rounded bg-slate-100 dark:bg-slate-800/60 hover:bg-sky-50 dark:hover:bg-sky-950/40 text-[11px] truncate flex items-center justify-between";
+          btn.innerHTML = `<span>${{depId.split('/').pop()}}</span><span class='text-[9px] opacity-40'>fly ➔</span>`;
+          btn.onclick = () => flyToNode(depId);
+          inList.appendChild(btn);
+        }});
+      }} else {{
+        inList.innerHTML = "<p class='opacity-40 text-[10px]'>No incoming callers.</p>";
+      }}
+
+      if (node.outbound && node.outbound.length) {{
+        node.outbound.forEach(depId => {{
+          const btn = document.createElement("button");
+          btn.className = "w-full text-left px-2 py-1 rounded bg-slate-100 dark:bg-slate-800/60 hover:bg-sky-50 dark:hover:bg-sky-950/40 text-[11px] truncate flex items-center justify-between";
+          btn.innerHTML = `<span>${{depId.split('/').pop()}}</span><span class='text-[9px] opacity-40'>fly ➔</span>`;
+          btn.onclick = () => flyToNode(depId);
+          outList.appendChild(btn);
+        }});
+      }} else {{
+        outList.innerHTML = "<p class='opacity-40 text-[10px]'>No outgoing imports.</p>";
+      }}
+
+      panel.classList.remove("translate-x-[115%]");
+    }}
+
+    function closeInspector() {{
+      const panel = document.getElementById("inspectorPanel");
+      if (panel) panel.classList.add("translate-x-[115%]");
+      activeNode = null;
+    }}
+
+    function switchInspectorTab(tab) {{
+      const tDiff = document.getElementById("insTabDiff");
+      const tDeps = document.getElementById("insTabDeps");
+      const cDiff = document.getElementById("insContentDiff");
+      const cDeps = document.getElementById("insContentDeps");
+      if (tab === "diff") {{
+        tDiff.className = "px-3 py-1 font-semibold border-b-2 border-sky-500";
+        tDeps.className = "px-3 py-1 opacity-70 hover:opacity-100";
+        cDiff.classList.remove("hidden");
+        cDeps.classList.add("hidden");
+      }} else {{
+        tDeps.className = "px-3 py-1 font-semibold border-b-2 border-sky-500";
+        tDiff.className = "px-3 py-1 opacity-70 hover:opacity-100";
+        cDeps.classList.remove("hidden");
+        cDiff.classList.add("hidden");
+      }}
+    }}
+
+    function escapeHtml(str) {{
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }}
+
+    // ==========================================
+    // LEFT FILE EXPLORER CONTROLLER
+    // ==========================================
+    let explorerOpen = false;
+    function toggleExplorer() {{
+      explorerOpen = !explorerOpen;
+      const el = document.getElementById("explorerPanel");
+      if (explorerOpen) {{
+        el.classList.remove("-translate-x-[115%]");
+        renderExplorerList("");
+      }} else {{
+        el.classList.add("-translate-x-[115%]");
+      }}
+    }}
+
+    function renderExplorerList(filterQuery) {{
+      const listEl = document.getElementById("explorerList");
+      const countEl = document.getElementById("explorerCount");
+      if (!listEl) return;
+      listEl.innerHTML = "";
+
+      const q = filterQuery.toLowerCase();
+      const filtered = DATA.nodes.filter(n => n.id.toLowerCase().includes(q) || n.name.toLowerCase().includes(q));
+      if (countEl) countEl.textContent = filtered.length;
+
+      filtered.forEach(node => {{
+        const row = document.createElement("div");
+        row.className = "p-1.5 rounded-xl hover:bg-slate-200/50 dark:hover:bg-slate-800/60 cursor-pointer flex items-center justify-between transition";
+        const ftype = getFileType(node.name || node.id);
+        
+        let pipColor = "#10b981";
+        if (node.tier === 0) pipColor = "#f43f5e";
+        else if (node.tier === 1) pipColor = "#f59e0b";
+
+        row.innerHTML = `
+          <div class="flex items-center gap-2 truncate">
+            <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" style="background-color: ${{pipColor}}"></span>
+            <span class="text-[9px] font-bold px-1 rounded flex-shrink-0" style="background:${{ftype.bg}}; color:${{ftype.color}}">${{ftype.label}}</span>
+            <span class="truncate font-medium text-[11px]">${{node.name}}</span>
+          </div>
+          <span class="text-[9px] font-mono opacity-50 flex-shrink-0">${{node.added ? `+${{node.added}}` : ""}}</span>
+        `;
+        row.onclick = () => {{
+          selectNode(node);
+          flyToNode(node.id);
+        }};
+        listEl.appendChild(row);
+      }});
+    }}
+
+    function filterExplorerList(val) {{
+      renderExplorerList(val);
+    }}
+
+    // ==========================================
+    // COMMAND PALETTE CONTROLLER (Cmd+K)
+    // ==========================================
+    let paletteActiveFilter = "all";
+    function toggleCommandPalette() {{
+      const p = document.getElementById("commandPalette");
+      if (!p) return;
+      const isHidden = p.classList.contains("hidden");
+      if (isHidden) {{
+        p.classList.remove("hidden");
+        const inp = document.getElementById("paletteInput");
+        inp.value = "";
+        inp.focus();
+        renderPaletteResults("");
+      }} else {{
+        p.classList.add("hidden");
+      }}
+    }}
+
+    function onPaletteBackdrop(e) {{
+      toggleCommandPalette();
+    }}
+
+    function setPaletteFilter(filter) {{
+      paletteActiveFilter = filter;
+      document.querySelectorAll(".palette-chip").forEach(c => {{
+        c.className = "palette-chip px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300";
+      }});
+      event.target.className = "palette-chip px-2 py-0.5 rounded-full bg-slate-900 text-white dark:bg-sky-500 dark:text-slate-950 font-medium";
+      renderPaletteResults(document.getElementById("paletteInput").value);
+    }}
+
+    function onPaletteSearch(val) {{
+      renderPaletteResults(val);
+    }}
+
+    function renderPaletteResults(query) {{
+      const container = document.getElementById("paletteResults");
+      if (!container) return;
+      container.innerHTML = "";
+      const q = (query || "").toLowerCase();
+
+      let list = DATA.nodes.filter(n => n.id.toLowerCase().includes(q) || n.name.toLowerCase().includes(q));
+      if (paletteActiveFilter === "epicenter") list = list.filter(n => n.tier === 0);
+      else if (paletteActiveFilter === "ripple") list = list.filter(n => n.tier === 1);
+      else if (paletteActiveFilter === "py") list = list.filter(n => n.name.endsWith(".py"));
+      else if (paletteActiveFilter === "ts") list = list.filter(n => n.name.endsWith(".ts") || n.name.endsWith(".tsx"));
+
+      if (!list.length) {{
+        container.innerHTML = "<p class='p-3 text-center opacity-50 text-xs'>No matching files found.</p>";
+        return;
+      }}
+
+      list.slice(0, 15).forEach((node, idx) => {{
+        const item = document.createElement("div");
+        item.className = "p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer flex items-center justify-between";
+        const ftype = getFileType(node.name || node.id);
+
+        let tierLabel = "Safe";
+        let tierColor = "#10b981";
+        if (node.tier === 0) {{ tierLabel = "Epicenter"; tierColor = "#f43f5e"; }}
+        else if (node.tier === 1) {{ tierLabel = "Ripple"; tierColor = "#f59e0b"; }}
+
+        item.innerHTML = `
+          <div class="flex items-center gap-2 truncate">
+            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded" style="background:${{ftype.bg}}; color:${{ftype.color}}">${{ftype.label}}</span>
+            <div>
+              <p class="font-semibold text-xs truncate">${{node.name}}</p>
+              <p class="text-[10px] opacity-50 font-mono truncate">${{node.dir}}</p>
+            </div>
+          </div>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full" style="color:${{tierColor}}; background:${{tierColor}}18">${{tierLabel}}</span>
+        `;
+        item.onclick = () => {{
+          toggleCommandPalette();
+          selectNode(node);
+          flyToNode(node.id);
+        }};
+        container.appendChild(item);
+      }});
+    }}
+
+    function onPaletteKeyDown(e) {{
+      if (e.key === "Escape") toggleCommandPalette();
+    }}
+
+    // Global Keybindings (/ and Cmd+K and B)
+    window.addEventListener("keydown", (e) => {{
+      if ((e.key === "/" || ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k")) && e.target.tagName !== "INPUT") {{
+        e.preventDefault();
+        toggleCommandPalette();
+      }}
+      if (e.key.toLowerCase() === "b" && e.target.tagName !== "INPUT") {{
+        e.preventDefault();
+        toggleExplorer();
+      }}
+    }});
+
+    // Filter by Topbar Metric Pills
+    function filterByTier(tier) {{
+      toggleCommandPalette();
+      if (tier === 0) setPaletteFilter("epicenter");
+      else if (tier === 1) setPaletteFilter("ripple");
+      else setPaletteFilter("all");
+    }}
+
+    // Smooth Fly-To Camera Navigation
+    function flyToNode(nodeId) {{
+      const n = DATA.nodes.find(node => node.id === nodeId);
+      if (!n) return;
+      selectNode(n);
+
+      if (currentViewMode === "globe") {{
+        const gc = globeCoords.get(nodeId);
+        if (gc) {{
+          globeRotY = -gc.lon;
+          globeRotX = -gc.lat;
+          scale = 1.35;
+        }}
+      }} else if (currentViewMode === "continents") {{
+        const pt = continentCoords.get(nodeId);
+        if (pt) {{
+          scale = 2.4;
+          panX = width / 2 - pt.x * scale;
+          panY = height / 2 - pt.y * scale;
+          clampCamera();
+        }}
+      }} else if (currentViewMode === "city") {{
+        const pt = cityCoords.get(nodeId);
+        if (pt) {{
+          const isoX = (pt.x - pt.y) * 0.866;
+          const isoY = (pt.x + pt.y) * 0.5;
+          scale = 1.5;
+          panX = width / 2 - isoX * scale;
+          panY = height / 2 - isoY * scale;
+          clampCamera();
+        }}
+      }} else if (currentViewMode === "graph") {{
+        const pt = graphCoords.get(nodeId);
+        if (pt) {{
+          scale = 1.8;
+          panX = width / 2 - pt.x * scale;
+          panY = height / 2 - pt.y * scale;
+          clampCamera();
+        }}
+      }}
+      updateZoomUI();
+    }}
+
+    // ==========================================
     // RADAR / MINIMAP NAVIGATION
+    // ==========================================
     minimap.addEventListener("click", (e) => {{
       const rect = minimap.getBoundingClientRect();
       const clickX = e.clientX - rect.left;
@@ -986,7 +1641,7 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
       function toMmX(wx) {{ return ((wx - (worldMinX - pad)) / wSpan) * mmW; }}
       function toMmY(wy) {{ return ((wy - (worldMinY - pad)) / hSpan) * mmH; }}
 
-      // Draw mini-continents
+      // Draw mini continents
       continentLayout.forEach((cont) => {{
         const mx = toMmX(cont.cx);
         const my = toMmY(cont.cy);
@@ -994,74 +1649,67 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
 
         mmCtx.beginPath();
         mmCtx.arc(mx, my, Math.max(3, mr), 0, Math.PI * 2);
-        mmCtx.fillStyle = cont.hasEpicenter ? "#fecdd3" : "#e2e8f0";
+        mmCtx.fillStyle = cont.hasEpicenter ? "#fecdd3" : (isDarkTheme ? "#334155" : "#e2e8f0");
         mmCtx.fill();
-        mmCtx.strokeStyle = cont.hasEpicenter ? "#f43f5e" : "#cbd5e1";
-        mmCtx.lineWidth = 1;
-        mmCtx.stroke();
       }});
 
-      // Draw active viewport rectangle
-      const leftW = (0 - panX) / scale;
-      const rightW = (width - panX) / scale;
-      const topW = (0 - panY) / scale;
-      const bottomW = (height - panY) / scale;
+      // Viewport rectangle
+      if (currentViewMode !== "globe") {{
+        const leftW = (0 - panX) / scale;
+        const rightW = (width - panX) / scale;
+        const topW = (0 - panY) / scale;
+        const bottomW = (height - panY) / scale;
 
-      const vx = toMmX(leftW);
-      const vy = toMmY(topW);
-      const vw = toMmX(rightW) - vx;
-      const vh = toMmY(bottomW) - vy;
+        const vx = toMmX(leftW);
+        const vy = toMmY(topW);
+        const vw = toMmX(rightW) - vx;
+        const vh = toMmY(bottomW) - vy;
 
-      mmCtx.strokeStyle = "#0f172a";
-      mmCtx.lineWidth = 1.5;
-      mmCtx.strokeRect(vx, vy, vw, vh);
-
-      mmCtx.fillStyle = "rgba(15, 23, 42, 0.08)";
-      mmCtx.fillRect(vx, vy, vw, vh);
-    }}
-
-    // History Drawer Toggle
-    let historyOpen = false;
-    function toggleHistoryDrawer() {{
-      historyOpen = !historyOpen;
-      const drw = document.getElementById("historyDrawer");
-      if (historyOpen) {{
-        drw.classList.remove("translate-y-[200%]");
-      }} else {{
-        drw.classList.add("translate-y-[200%]");
+        mmCtx.strokeStyle = isDarkTheme ? "#38bdf8" : "#0f172a";
+        mmCtx.lineWidth = 1.5;
+        mmCtx.strokeRect(vx, vy, vw, vh);
       }}
     }}
 
-    // MAIN RENDER LOOP (60fps, Clean Light Aesthetic)
+    // ==========================================
+    // MAIN MULTI-VIEW RENDERING LOOP
+    // ==========================================
     function draw() {{
       animTime += 0.025;
+      screenNodeMap.clear();
       ctx.clearRect(0, 0, width, height);
 
-      // Background Subtle Canvas
-      ctx.fillStyle = "#f8fafc";
+      // Canvas background
+      ctx.fillStyle = isDarkTheme ? "#090d16" : "#f8fafc";
       ctx.fillRect(0, 0, width, height);
 
+      if (currentViewMode === "continents") {{
+        renderContinentsMode();
+      }} else if (currentViewMode === "globe") {{
+        renderGlobeMode();
+      }} else if (currentViewMode === "city") {{
+        renderCityMode();
+      }} else if (currentViewMode === "graph") {{
+        renderGraphMode();
+      }}
+
+      renderRadar();
+      requestAnimationFrame(draw);
+    }}
+
+    // ----------------------------------------------------
+    // MODE 1: TOPOGRAPHIC CONTINENTS (Organic Landscape)
+    // ----------------------------------------------------
+    function renderContinentsMode() {{
       ctx.save();
       ctx.translate(panX, panY);
       ctx.scale(scale, scale);
 
-      // ==========================================
-      // 1. ORGANIC TECTONIC CONTINENTS (Light Paper Bedrock)
-      // ==========================================
+      // 1. Draw Landmasses
       continentLayout.forEach((cont, modName) => {{
         const pts = cont.points;
         if (!pts.length) return;
 
-        // Shelf Halo
-        const shelfGrad = ctx.createRadialGradient(cont.cx, cont.cy, cont.baseRadius * 0.3, cont.cx, cont.cy, cont.baseRadius * 1.25);
-        shelfGrad.addColorStop(0, cont.hasEpicenter ? "rgba(254, 226, 226, 0.6)" : "rgba(241, 245, 249, 0.8)");
-        shelfGrad.addColorStop(1, "rgba(248, 250, 252, 0)");
-        ctx.fillStyle = shelfGrad;
-        ctx.beginPath();
-        ctx.arc(cont.cx, cont.cy, cont.baseRadius * 1.25, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Landmass Bedrock (Pure Clean White with Drop Shadow)
         ctx.beginPath();
         ctx.moveTo(pts[0].x, pts[0].y);
         for (let i = 1; i < pts.length; i++) {{
@@ -1072,367 +1720,460 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
           ctx.quadraticCurveTo(prev.x, prev.y, mx, my);
         }}
         ctx.closePath();
-        ctx.fillStyle = "#ffffff";
-        ctx.shadowColor = "rgba(15, 23, 42, 0.06)";
+        ctx.fillStyle = isDarkTheme ? "#131b2e" : "#ffffff";
+        ctx.shadowColor = isDarkTheme ? "rgba(0,0,0,0.4)" : "rgba(15, 23, 42, 0.06)";
         ctx.shadowBlur = 24;
-        ctx.shadowOffsetY = 4;
         ctx.fill();
         ctx.shadowBlur = 0;
-        ctx.shadowOffsetY = 0;
 
-        // Clean Coastline Border
-        ctx.strokeStyle = cont.hasEpicenter ? "#fda4af" : "#cbd5e1";
-        ctx.lineWidth = 1.8 / scale;
+        ctx.strokeStyle = cont.hasEpicenter ? "#f43f5e" : (isDarkTheme ? "#1e293b" : "#cbd5e1");
+        ctx.lineWidth = 1.6 / scale;
         ctx.stroke();
 
-        // Delicate Elevation Contours
-        [0.78, 0.55, 0.35].forEach((ratio, idx) => {{
-          ctx.beginPath();
-          for (let i = 0; i < pts.length; i++) {{
-            const p = pts[i];
-            const px = cont.cx + (p.x - cont.cx) * ratio;
-            const py = cont.cy + (p.y - cont.cy) * ratio;
-            if (i === 0) ctx.moveTo(px, py);
-            else ctx.lineTo(px, py);
-          }}
-          ctx.closePath();
-          ctx.strokeStyle = cont.hasEpicenter ? 
-            `rgba(244, 63, 94, ${{0.14 - idx * 0.03}})` : 
-            `rgba(203, 213, 225, ${{0.4 - idx * 0.1}})`;
-          ctx.lineWidth = 1 / scale;
-          ctx.stroke();
-        }});
-
-        // Continent Name
         if (scale < 1.4) {{
-          ctx.fillStyle = cont.hasEpicenter ? "#be123c" : "#334155";
-          ctx.font = `700 ${{Math.max(13, 19)}}px -apple-system, system-ui, sans-serif`;
+          ctx.fillStyle = cont.hasEpicenter ? "#f43f5e" : (isDarkTheme ? "#94a3b8" : "#475569");
+          ctx.font = `bold ${{Math.max(12, 18)}}px -apple-system, sans-serif`;
           ctx.textAlign = "center";
           ctx.fillText(`⯎ ${{modName.toUpperCase()}}`, cont.cx, cont.cy - cont.baseRadius - 14);
         }}
       }});
 
-      // ==========================================
-      // 2. DEPENDENCY RIVERS & SUBTLE PULSES
-      // ==========================================
+      // 2. Draw Dependency Edges
       DATA.links.forEach(l => {{
-        const src = nodeCoords.get(l.source);
-        const tgt = nodeCoords.get(l.target);
+        const src = continentCoords.get(l.source);
+        const tgt = continentCoords.get(l.target);
         if (!src || !tgt) return;
 
-        const srcNode = DATA.nodes.find(n => n.id === l.source);
-        const isEpicenterEdge = srcNode && srcNode.tier === 0;
-
-        const midX = (src.x + tgt.x) / 2 - (tgt.y - src.y) * 0.15;
-        const midY = (src.y + tgt.y) / 2 + (tgt.x - src.x) * 0.15;
-
-        ctx.strokeStyle = isEpicenterEdge ? "rgba(244, 63, 94, 0.35)" : "rgba(203, 213, 225, 0.7)";
+        ctx.strokeStyle = isDarkTheme ? "rgba(56, 189, 248, 0.3)" : "rgba(203, 213, 225, 0.75)";
         ctx.lineWidth = Math.max(1, 1.4 / scale);
         ctx.beginPath();
         ctx.moveTo(src.x, src.y);
-        ctx.quadraticCurveTo(midX, midY, tgt.x, tgt.y);
+        ctx.lineTo(tgt.x, tgt.y);
         ctx.stroke();
-
-        // Flowing energy particle
-        const t = (animTime * 0.5) % 1.0;
-        const px = (1 - t) ** 2 * src.x + 2 * (1 - t) * t * midX + t ** 2 * tgt.x;
-        const py = (1 - t) ** 2 * src.y + 2 * (1 - t) * t * midY + t ** 2 * tgt.y;
-
-        ctx.beginPath();
-        ctx.arc(px, py, isEpicenterEdge ? 3 : 2, 0, Math.PI * 2);
-        ctx.fillStyle = isEpicenterEdge ? "#e11d48" : "#0284c7";
-        ctx.fill();
       }});
 
-      // ==========================================
-      // 3. AUTHENTIC FILE BADGES & CODE STRATA (Zero Annoying Waves!)
-      // ==========================================
+      // 3. Draw Nodes with File Extension Badges
       DATA.nodes.forEach(node => {{
-        const pt = nodeCoords.get(node.id);
+        const pt = continentCoords.get(node.id);
         if (!pt) return;
+
+        // Record screen position for hit testing
+        const screenX = panX + pt.x * scale;
+        const screenY = panY + pt.y * scale;
+        const radius = (scale < 0.55 ? 24 : 32) * (hoveredNode?.id === node.id ? 1.2 : 1.0);
+        screenNodeMap.set(node.id, {{ x: screenX, y: screenY, radius: radius * scale, visible: true }});
+
+        renderFileBadgeNode(node, pt.x, pt.y, scale);
+      }});
+
+      ctx.restore();
+    }}
+
+    // ----------------------------------------------------
+    // MODE 2: 3D ORBITAL GLOBE (Interactive Sphere)
+    // ----------------------------------------------------
+    function renderGlobeMode() {{
+      const cx = width / 2;
+      const cy = height / 2;
+      const R = Math.min(width, height) * 0.35 * scale;
+
+      // Atmospheric Rim Glow
+      const atmGrad = ctx.createRadialGradient(cx, cy, R * 0.85, cx, cy, R * 1.25);
+      atmGrad.addColorStop(0, isDarkTheme ? "rgba(56, 189, 248, 0.25)" : "rgba(14, 165, 233, 0.15)");
+      atmGrad.addColorStop(1, "rgba(56, 189, 248, 0)");
+      ctx.fillStyle = atmGrad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, R * 1.25, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Planet Sphere Body
+      ctx.fillStyle = isDarkTheme ? "#0b1220" : "#f1f5f9";
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = isDarkTheme ? "#38bdf8" : "#94a3b8";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Latitude Circles & Longitude Ellipses
+      ctx.strokeStyle = isDarkTheme ? "rgba(56, 189, 248, 0.15)" : "rgba(148, 163, 184, 0.3)";
+      ctx.lineWidth = 1;
+      [-0.6, -0.3, 0, 0.3, 0.6].forEach(latFrac => {{
+        const rLat = R * Math.cos(latFrac * Math.PI / 2);
+        const yLat = cy + R * Math.sin(latFrac * Math.PI / 2) * Math.cos(globeRotX);
+        ctx.beginPath();
+        ctx.ellipse(cx, yLat, rLat, rLat * Math.abs(Math.sin(globeRotX)), 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }});
+
+      // 3D Projected Coordinates for each node
+      const projectedNodes = [];
+      DATA.nodes.forEach(node => {{
+        const gc = globeCoords.get(node.id);
+        if (!gc) return;
+
+        const x0 = R * Math.cos(gc.lat) * Math.sin(gc.lon);
+        const y0 = -R * Math.sin(gc.lat);
+        const z0 = R * Math.cos(gc.lat) * Math.cos(gc.lon);
+
+        // Rotate Y (Yaw)
+        const x1 = x0 * Math.cos(globeRotY) + z0 * Math.sin(globeRotY);
+        const z1 = -x0 * Math.sin(globeRotY) + z0 * Math.cos(globeRotY);
+
+        // Rotate X (Pitch)
+        const y2 = y0 * Math.cos(globeRotX) - z1 * Math.sin(globeRotX);
+        const z2 = y0 * Math.sin(globeRotX) + z1 * Math.cos(globeRotX);
+
+        projectedNodes.push({{
+          node,
+          x: cx + x1,
+          y: cy + y2,
+          z: z2,
+          visible: z2 > -R * 0.1
+        }});
+      }});
+
+      // Depth sort
+      projectedNodes.sort((a, b) => a.z - b.z);
+
+      // Draw Edges on Globe
+      DATA.links.forEach(l => {{
+        const p1 = projectedNodes.find(pn => pn.node.id === l.source);
+        const p2 = projectedNodes.find(pn => pn.node.id === l.target);
+        if (p1 && p2 && p1.visible && p2.visible) {{
+          ctx.strokeStyle = isDarkTheme ? "rgba(56, 189, 248, 0.4)" : "rgba(2, 132, 199, 0.4)";
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.stroke();
+        }}
+      }});
+
+      // Draw Nodes on Globe
+      projectedNodes.forEach(pn => {{
+        if (!pn.visible) return;
+        const opacity = pn.z > 0 ? 1.0 : Math.max(0.2, (pn.z + R * 0.1) / (R * 0.1));
+        ctx.globalAlpha = opacity;
+
+        const isHovered = hoveredNode && hoveredNode.id === pn.node.id;
+        const isActive = activeNode && activeNode.id === pn.node.id;
+        const ftype = getFileType(pn.node.name || pn.node.id);
+        const size = (isHovered || isActive ? 34 : 26);
+        const half = size / 2;
+
+        screenNodeMap.set(pn.node.id, {{ x: pn.x, y: pn.y, radius: half + 4, visible: pn.z > 0 }});
+
+        ctx.save();
+        ctx.translate(pn.x, pn.y);
+
+        // Badge Background
+        ctx.fillStyle = ftype.bg;
+        ctx.beginPath();
+        ctx.roundRect(-half, -half, size, size, 6);
+        ctx.fill();
+
+        // Icon Glyph
+        ctx.fillStyle = ftype.color;
+        ctx.font = `bold ${{Math.round(size * 0.42)}}px -apple-system, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(ftype.label, 0, 0);
+
+        // Tier Border
+        ctx.strokeStyle = pn.node.tier === 0 ? "#f43f5e" : (pn.node.tier === 1 ? "#f59e0b" : "#ffffff");
+        ctx.lineWidth = pn.node.tier === 0 ? 2.2 : 1.2;
+        ctx.stroke();
+
+        ctx.restore();
+        ctx.globalAlpha = 1.0;
+      }});
+    }}
+
+    // ----------------------------------------------------
+    // MODE 3: 2.5D ISOMETRIC CODE CITY (Skyscrapers)
+    // ----------------------------------------------------
+    function renderCityMode() {{
+      ctx.save();
+      ctx.translate(panX, panY);
+      ctx.scale(scale, scale);
+
+      // Depth sort buildings from back to front
+      const sortedCityNodes = [...DATA.nodes].sort((a, b) => {{
+        const pa = cityCoords.get(a.id) || {{ x: 0, y: 0 }};
+        const pb = cityCoords.get(b.id) || {{ x: 0, y: 0 }};
+        return (pa.x + pa.y) - (pb.x + pb.y);
+      }});
+
+      // Draw Skyway Cables
+      DATA.links.forEach(l => {{
+        const pa = cityCoords.get(l.source);
+        const pb = cityCoords.get(l.target);
+        if (!pa || !pb) return;
+
+        const isoA_X = (pa.x - pa.y) * 0.866;
+        const isoA_Y = (pa.x + pa.y) * 0.5 - (30 + Math.min(pa.loc, 250) * 0.4);
+        const isoB_X = (pb.x - pb.y) * 0.866;
+        const isoB_Y = (pb.x + pb.y) * 0.5 - (30 + Math.min(pb.loc, 250) * 0.4);
+
+        ctx.strokeStyle = isDarkTheme ? "rgba(56, 189, 248, 0.4)" : "rgba(14, 165, 233, 0.4)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(isoA_X, isoA_Y);
+        const midX = (isoA_X + isoB_X) / 2;
+        const midY = Math.min(isoA_Y, isoB_Y) - 40;
+        ctx.quadraticCurveTo(midX, midY, isoB_X, isoB_Y);
+        ctx.stroke();
+      }});
+
+      // Draw 3D Isometric Buildings
+      sortedCityNodes.forEach(node => {{
+        const pt = cityCoords.get(node.id);
+        if (!pt) return;
+
+        const isoX = (pt.x - pt.y) * 0.866;
+        const isoY = (pt.x + pt.y) * 0.5;
+        const H = 35 + Math.min(pt.loc, 250) * 0.45;
+        const W = 32;
 
         const isHovered = hoveredNode && hoveredNode.id === node.id;
         const isActive = activeNode && activeNode.id === node.id;
         const ftype = getFileType(node.name || node.id);
-        const iconImg = iconImageCache.get(ftype.key);
 
-        // GROUND CODE LEVEL (Scale >= 1.7)
-        if (scale >= 1.7) {{
-          ctx.save();
-          ctx.translate(pt.x, pt.y);
+        const screenX = panX + isoX * scale;
+        const screenY = panY + (isoY - H) * scale;
+        screenNodeMap.set(node.id, {{ x: screenX, y: screenY, radius: 24 * scale, visible: true }});
 
-          const cardW = 380;
-          const cardH = 240;
-          const halfW = cardW / 2;
-          const halfH = cardH / 2;
+        ctx.save();
+        ctx.translate(isoX, isoY);
 
-          // Code Container (Clean white card with soft elevation shadow)
-          ctx.fillStyle = "#ffffff";
-          ctx.shadowColor = "rgba(15, 23, 42, 0.10)";
-          ctx.shadowBlur = 22;
-          ctx.shadowOffsetY = 6;
+        // Left Facade
+        ctx.fillStyle = node.tier === 0 ? "#be123c" : (node.tier === 1 ? "#d97706" : (isDarkTheme ? "#1e293b" : "#94a3b8"));
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(-W * 0.866, W * 0.5);
+        ctx.lineTo(-W * 0.866, W * 0.5 - H);
+        ctx.lineTo(0, -H);
+        ctx.closePath();
+        ctx.fill();
+
+        // Right Facade (Darker shadow)
+        ctx.fillStyle = node.tier === 0 ? "#9f1239" : (node.tier === 1 ? "#b45309" : (isDarkTheme ? "#0f172a" : "#64748b"));
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(W * 0.866, W * 0.5);
+        ctx.lineTo(W * 0.866, W * 0.5 - H);
+        ctx.lineTo(0, -H);
+        ctx.closePath();
+        ctx.fill();
+
+        // Rooftop Diamond (Lightest)
+        ctx.fillStyle = ftype.bg;
+        ctx.beginPath();
+        ctx.moveTo(0, -H - W * 0.5);
+        ctx.lineTo(-W * 0.866, -H);
+        ctx.lineTo(0, -H + W * 0.5);
+        ctx.lineTo(W * 0.866, -H);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = isHovered || isActive ? "#38bdf8" : (node.tier === 0 ? "#f43f5e" : "#ffffff");
+        ctx.lineWidth = isHovered || isActive ? 2.5 : 1;
+        ctx.stroke();
+
+        // Rooftop Emblem
+        ctx.fillStyle = ftype.color;
+        ctx.font = "bold 11px -apple-system, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(ftype.label, 0, -H);
+
+        // Antenna on Epicenter buildings
+        if (node.tier === 0) {{
+          ctx.strokeStyle = "#f43f5e";
+          ctx.lineWidth = 1.5;
           ctx.beginPath();
-          ctx.roundRect(-halfW, -halfH, cardW, cardH, 14);
-          ctx.fill();
-          ctx.shadowBlur = 0;
-          ctx.shadowOffsetY = 0;
-
-          // Border based on blast tier
-          ctx.strokeStyle = isHovered || isActive ? "#0f172a" : (node.tier === 0 ? "#f43f5e" : (node.tier === 1 ? "#f59e0b" : "#e2e8f0"));
-          ctx.lineWidth = Math.max(1.5, 2.0 / scale);
+          ctx.moveTo(0, -H - W * 0.5);
+          ctx.lineTo(0, -H - W * 0.5 - 20);
           ctx.stroke();
 
-          // Header bar
-          ctx.fillStyle = "#f8fafc";
+          ctx.fillStyle = "#f43f5e";
           ctx.beginPath();
-          ctx.roundRect(-halfW, -halfH, cardW, 40, [14, 14, 0, 0]);
+          ctx.arc(0, -H - W * 0.5 - 20, 3, 0, Math.PI * 2);
           ctx.fill();
-          ctx.strokeStyle = "#e2e8f0";
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.moveTo(-halfW, -halfH + 40);
-          ctx.lineTo(halfW, -halfH + 40);
-          ctx.stroke();
-
-          // Header: File Extension Icon
-          if (iconImg && iconImg.complete && iconImg.naturalWidth !== 0) {{
-            ctx.drawImage(iconImg, -halfW + 12, -halfH + 8, 24, 24);
-          }} else {{
-            ctx.fillStyle = ftype.bg;
-            ctx.beginPath();
-            ctx.roundRect(-halfW + 12, -halfH + 8, 24, 24, 5);
-            ctx.fill();
-            ctx.fillStyle = ftype.color;
-            ctx.font = "bold 10px -apple-system, sans-serif";
-            ctx.textAlign = "center";
-            ctx.fillText(ftype.label, -halfW + 24, -halfH + 24);
-          }}
-
-          // Header: File Name
-          ctx.fillStyle = "#0f172a";
-          ctx.font = "bold 13px -apple-system, sans-serif";
-          ctx.textAlign = "left";
-          ctx.fillText(node.name, -halfW + 44, -halfH + 25);
-
-          // Header: Tier Status Pill
-          const tierText = node.tier === 0 ? "⚡ EPICENTER" : (node.tier === 1 ? "▲ RIPPLE" : "✓ SAFE");
-          const tierColor = node.tier === 0 ? "#e11d48" : (node.tier === 1 ? "#d97706" : "#059669");
-          const tierBg = node.tier === 0 ? "#ffe4e6" : (node.tier === 1 ? "#fef3c7" : "#ecfdf5");
-          ctx.fillStyle = tierBg;
-          ctx.beginPath();
-          ctx.roundRect(halfW - 95, -halfH + 11, 82, 18, 9);
-          ctx.fill();
-          ctx.fillStyle = tierColor;
-          ctx.font = "bold 9px -apple-system, sans-serif";
-          ctx.textAlign = "center";
-          ctx.fillText(tierText, halfW - 54, -halfH + 23);
-
-          // Code Lines
-          ctx.font = "10px SFMono-Regular, Consolas, monospace";
-          ctx.textAlign = "left";
-          const lines = node.diffLines && node.diffLines.length ? node.diffLines.slice(0, 10) : (node.codeLines || []).slice(0, 10);
-          let ly = -halfH + 60;
-
-          lines.forEach(l => {{
-            if (l.type === "add") {{
-              ctx.fillStyle = "#ecfdf5";
-              ctx.fillRect(-halfW + 10, ly - 9, cardW - 20, 15);
-              ctx.fillStyle = "#047857";
-              ctx.fillText(`+ ${{l.text.slice(0, 48)}}`, -halfW + 16, ly + 2);
-            }} else if (l.type === "del") {{
-              ctx.fillStyle = "#fff1f2";
-              ctx.fillRect(-halfW + 10, ly - 9, cardW - 20, 15);
-              ctx.fillStyle = "#be123c";
-              ctx.fillText(`- ${{l.text.slice(0, 48)}}`, -halfW + 16, ly + 2);
-            }} else {{
-              ctx.fillStyle = "#475569";
-              const txt = l.text !== undefined ? l.text : l;
-              ctx.fillText(`  ${{String(txt).slice(0, 48)}}`, -halfW + 16, ly + 2);
-            }}
-            ly += 16;
-          }});
-
-          ctx.restore();
-        }}
-        // FILE BADGE / ICON LEVEL (Scale < 1.7)
-        else {{
-          ctx.save();
-          ctx.translate(pt.x, pt.y);
-
-          // Responsive badge size
-          let size = scale < 0.55 ? 26 : 34;
-          if (isHovered || isActive) size += 6;
-          const half = size / 2;
-
-          // Subtle shadow
-          ctx.shadowColor = "rgba(15, 23, 42, 0.12)";
-          ctx.shadowBlur = isHovered || isActive ? 14 : 6;
-          ctx.shadowOffsetY = 2;
-
-          // Badge Background
-          ctx.fillStyle = ftype.bg;
-          ctx.beginPath();
-          ctx.roundRect(-half, -half, size, size, 7);
-          ctx.fill();
-          ctx.shadowBlur = 0;
-          ctx.shadowOffsetY = 0;
-
-          // File Extension SVG Icon / Glyph
-          if (iconImg && iconImg.complete && iconImg.naturalWidth !== 0) {{
-            const pad = 3;
-            ctx.drawImage(iconImg, -half + pad, -half + pad, size - pad * 2, size - pad * 2);
-          }} else {{
-            ctx.fillStyle = ftype.color;
-            ctx.font = `900 ${{Math.round(size * 0.40)}}px -apple-system, sans-serif`;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(ftype.label, 0, 0);
-          }}
-
-          // Blast Radius Border (Crisp, No wave emission!)
-          let strokeColor = "rgba(255, 255, 255, 0.85)";
-          let strokeWidth = 1.2;
-          if (node.tier === 0) {{
-            strokeColor = "#f43f5e"; // Rose Epicenter
-            strokeWidth = 2.4;
-          }} else if (node.tier === 1) {{
-            strokeColor = "#f59e0b"; // Amber Ripple
-            strokeWidth = 2.0;
-          }} else if (isHovered || isActive) {{
-            strokeColor = "#0f172a";
-            strokeWidth = 1.8;
-          }}
-          ctx.strokeStyle = strokeColor;
-          ctx.lineWidth = strokeWidth;
-          ctx.stroke();
-
-          // Corner Status Pip (No radiating continuous rings!)
-          if (node.tier === 0) {{
-            // Ruby Red Status Pip on top-right
-            ctx.beginPath();
-            ctx.arc(half - 2, -half + 2, 4.5, 0, Math.PI * 2);
-            ctx.fillStyle = "#e11d48";
-            ctx.fill();
-            ctx.strokeStyle = "#ffffff";
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-          }} else if (node.tier === 1) {{
-            // Amber Pip on top-right
-            ctx.beginPath();
-            ctx.arc(half - 2, -half + 2, 4, 0, Math.PI * 2);
-            ctx.fillStyle = "#ea580c";
-            ctx.fill();
-            ctx.strokeStyle = "#ffffff";
-            ctx.lineWidth = 1.2;
-            ctx.stroke();
-          }}
-
-          // GIF-like Micro-Sheen on Hover / Active
-          if (isHovered || isActive) {{
-            const sheenT = (animTime * 1.4) % 2.2;
-            if (sheenT < 1.1) {{
-              ctx.save();
-              ctx.beginPath();
-              ctx.roundRect(-half, -half, size, size, 7);
-              ctx.clip();
-              const sx = -size + sheenT * size * 2.2;
-              const grad = ctx.createLinearGradient(sx, -half, sx + 14, half);
-              grad.addColorStop(0, "rgba(255, 255, 255, 0)");
-              grad.addColorStop(0.5, "rgba(255, 255, 255, 0.45)");
-              grad.addColorStop(1, "rgba(255, 255, 255, 0)");
-              ctx.fillStyle = grad;
-              ctx.fillRect(-half, -half, size, size);
-              ctx.restore();
-            }}
-          }}
-
-          // File Label Underneath
-          if (scale > 0.45 || isHovered || isActive) {{
-            ctx.fillStyle = isHovered || isActive ? "#0f172a" : "#334155";
-            ctx.font = isHovered || isActive ? "600 12px -apple-system, sans-serif" : "500 11px -apple-system, sans-serif";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "top";
-            ctx.fillText(node.name, 0, half + 5);
-
-            // Change pill if modified
-            if (node.tier === 0 && (scale > 0.65 || isHovered)) {{
-              const diffStr = (node.added > 0 || node.deleted > 0) ? `+${{node.added}} -${{node.deleted}}` : "EDITED";
-              ctx.fillStyle = "#e11d48";
-              ctx.font = "bold 9px -apple-system, sans-serif";
-              ctx.fillText(diffStr, 0, half + 19);
-            }}
-          }}
-
-          ctx.restore();
         }}
 
-        // ==========================================
-        // 4. RETICLE TELEMETRY HALO (In-situ, Clean White Card)
-        // ==========================================
-        if (isHovered || isActive) {{
-          ctx.save();
-          ctx.translate(pt.x, pt.y);
-
-          // Targeting Ring
-          ctx.strokeStyle = "#0f172a";
-          ctx.lineWidth = 1.4 / scale;
-          ctx.beginPath();
-          ctx.arc(0, 0, 24, 0, Math.PI * 2);
-          ctx.stroke();
-
-          // Floating Telemetry Box
-          const boxX = 32;
-          const boxY = -48;
-          ctx.fillStyle = "rgba(255, 255, 255, 0.98)";
-          ctx.strokeStyle = "#cbd5e1";
-          ctx.lineWidth = 1 / scale;
-          ctx.shadowColor = "rgba(15, 23, 42, 0.08)";
-          ctx.shadowBlur = 14;
-          ctx.beginPath();
-          ctx.roundRect(boxX, boxY, 175, 66, 8);
-          ctx.fill();
-          ctx.shadowBlur = 0;
-          ctx.stroke();
-
-          // Title & Extension Type
-          ctx.fillStyle = "#0f172a";
-          ctx.font = "bold 11px -apple-system, sans-serif";
-          ctx.textAlign = "left";
-          ctx.fillText(node.name, boxX + 10, boxY + 18);
-
-          // Type descriptor
-          ctx.fillStyle = "#64748b";
-          ctx.font = "9px -apple-system, sans-serif";
-          ctx.fillText(ftype.name, boxX + 10, boxY + 31);
-
-          // Tier badge
-          ctx.font = "bold 9px -apple-system, sans-serif";
-          ctx.fillStyle = node.tier === 0 ? "#e11d48" : (node.tier === 1 ? "#ea580c" : "#0284c7");
-          const tierLabel = node.tier === 0 ? "⚡ EPICENTER (ACTIVE EDIT)" : (node.tier === 1 ? "▲ RIPPLE ZONE" : "✓ SAFE BEDROCK");
-          ctx.fillText(tierLabel, boxX + 10, boxY + 45);
-
-          // Stats
-          ctx.fillStyle = "#475569";
-          let statText = "";
-          if (node.added > 0 || node.deleted > 0) {{
-            statText = `+${{node.added}} -${{node.deleted}} Diff | ${{node.inbound.length}} callers`;
-          }} else if (node.tier === 0) {{
-            statText = `Active Session Edit | ${{node.inbound.length}} callers`;
-          }} else {{
-            statText = `Clean Bedrock | ${{node.inbound.length}} callers`;
-          }}
-          ctx.fillText(statText, boxX + 10, boxY + 58);
-
-          ctx.restore();
-        }}
+        ctx.restore();
       }});
 
       ctx.restore();
-      renderRadar();
-      requestAnimationFrame(draw);
     }}
 
-    // Timeline Scrubber
+    // ----------------------------------------------------
+    // MODE 4: NEURAL ORGANIC GRAPH (Constellations)
+    // ----------------------------------------------------
+    function renderGraphMode() {{
+      ctx.save();
+      ctx.translate(panX, panY);
+      ctx.scale(scale, scale);
+
+      // Flowing Bezier Streams
+      DATA.links.forEach(l => {{
+        const p1 = graphCoords.get(l.source);
+        const p2 = graphCoords.get(l.target);
+        if (!p1 || !p2) return;
+
+        ctx.strokeStyle = isDarkTheme ? "rgba(56, 189, 248, 0.35)" : "rgba(2, 132, 199, 0.35)";
+        ctx.lineWidth = Math.max(1, 1.6 / scale);
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+
+        // Flow particle
+        const t = (animTime * 0.4) % 1.0;
+        const px = p1.x + (p2.x - p1.x) * t;
+        const py = p1.y + (p2.y - p1.y) * t;
+        ctx.fillStyle = isDarkTheme ? "#38bdf8" : "#0284c7";
+        ctx.beginPath();
+        ctx.arc(px, py, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }});
+
+      // Draw Neural Nodes
+      DATA.nodes.forEach(node => {{
+        const pt = graphCoords.get(node.id);
+        if (!pt) return;
+
+        const screenX = panX + pt.x * scale;
+        const screenY = panY + pt.y * scale;
+        const radius = (scale < 0.6 ? 22 : 30) * (hoveredNode?.id === node.id ? 1.2 : 1.0);
+        screenNodeMap.set(node.id, {{ x: screenX, y: screenY, radius: radius * scale, visible: true }});
+
+        renderFileBadgeNode(node, pt.x, pt.y, scale);
+      }});
+
+      ctx.restore();
+    }}
+
+    // ----------------------------------------------------
+    // UNIVERSAL FILE BADGE NODE RENDERER
+    // ----------------------------------------------------
+    function renderFileBadgeNode(node, x, y, currScale) {{
+      const isHovered = hoveredNode && hoveredNode.id === node.id;
+      const isActive = activeNode && activeNode.id === node.id;
+      const ftype = getFileType(node.name || node.id);
+      const iconImg = iconImageCache.get(ftype.key);
+
+      ctx.save();
+      ctx.translate(x, y);
+
+      let size = currScale < 0.55 ? 26 : 34;
+      if (isHovered || isActive) size += 6;
+      const half = size / 2;
+
+      // Soft Elevation Drop Shadow
+      ctx.shadowColor = isDarkTheme ? "rgba(0, 0, 0, 0.6)" : "rgba(15, 23, 42, 0.12)";
+      ctx.shadowBlur = isHovered || isActive ? 14 : 6;
+      ctx.shadowOffsetY = 2;
+
+      // Badge Background
+      ctx.fillStyle = ftype.bg;
+      ctx.beginPath();
+      ctx.roundRect(-half, -half, size, size, 7);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+
+      // Icon Graphic / SVG
+      if (iconImg && iconImg.complete && iconImg.naturalWidth !== 0) {{
+        const pad = 3;
+        ctx.drawImage(iconImg, -half + pad, -half + pad, size - pad * 2, size - pad * 2);
+      }} else {{
+        ctx.fillStyle = ftype.color;
+        ctx.font = `900 ${{Math.round(size * 0.40)}}px -apple-system, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(ftype.label, 0, 0);
+      }}
+
+      // Blast Radius Border (Zero continuous annoying waves!)
+      let strokeColor = isDarkTheme ? "rgba(255, 255, 255, 0.2)" : "rgba(255, 255, 255, 0.85)";
+      let strokeWidth = 1.2;
+      if (node.tier === 0) {{
+        strokeColor = "#f43f5e";
+        strokeWidth = 2.4;
+      }} else if (node.tier === 1) {{
+        strokeColor = "#f59e0b";
+        strokeWidth = 2.0;
+      }} else if (isHovered || isActive) {{
+        strokeColor = isDarkTheme ? "#38bdf8" : "#0f172a";
+        strokeWidth = 1.8;
+      }}
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = strokeWidth;
+      ctx.stroke();
+
+      // Corner Status Pip
+      if (node.tier === 0) {{
+        ctx.beginPath();
+        ctx.arc(half - 2, -half + 2, 4.5, 0, Math.PI * 2);
+        ctx.fillStyle = "#e11d48";
+        ctx.fill();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }} else if (node.tier === 1) {{
+        ctx.beginPath();
+        ctx.arc(half - 2, -half + 2, 4, 0, Math.PI * 2);
+        ctx.fillStyle = "#ea580c";
+        ctx.fill();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+      }}
+
+      // Hover Micro-Sheen
+      if (isHovered || isActive) {{
+        const sheenT = (animTime * 1.4) % 2.2;
+        if (sheenT < 1.1) {{
+          ctx.save();
+          ctx.beginPath();
+          ctx.roundRect(-half, -half, size, size, 7);
+          ctx.clip();
+          const sx = -size + sheenT * size * 2.2;
+          const grad = ctx.createLinearGradient(sx, -half, sx + 14, half);
+          grad.addColorStop(0, "rgba(255, 255, 255, 0)");
+          grad.addColorStop(0.5, "rgba(255, 255, 255, 0.45)");
+          grad.addColorStop(1, "rgba(255, 255, 255, 0)");
+          ctx.fillStyle = grad;
+          ctx.fillRect(-half, -half, size, size);
+          ctx.restore();
+        }}
+      }}
+
+      // File Label Below
+      if (currScale > 0.45 || isHovered || isActive) {{
+        ctx.fillStyle = isHovered || isActive ? (isDarkTheme ? "#f8fafc" : "#0f172a") : (isDarkTheme ? "#94a3b8" : "#334155");
+        ctx.font = isHovered || isActive ? "600 12px -apple-system, sans-serif" : "500 11px -apple-system, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        ctx.fillText(node.name, 0, half + 5);
+
+        if (node.tier === 0 && (currScale > 0.65 || isHovered)) {{
+          const diffStr = (node.added > 0 || node.deleted > 0) ? `+${{node.added}} -${{node.deleted}}` : "EDITED";
+          ctx.fillStyle = "#f43f5e";
+          ctx.font = "bold 9px -apple-system, sans-serif";
+          ctx.fillText(diffStr, 0, half + 19);
+        }}
+      }}
+
+      ctx.restore();
+    }}
+
+    // ==========================================
+    // TIMELINE FLIGHT SCRUBBER
+    // ==========================================
     const timeline = document.getElementById("timeline");
     const stepCount = document.getElementById("stepCount");
     const flightThought = document.getElementById("flightThought");
@@ -1454,13 +2195,8 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
         flightAction.textContent = st.type.toUpperCase();
         flightThought.textContent = st.thought || (st.file ? `Targeted ${{st.file}}` : st.summary || "Agent working...");
 
-        if (st.file && nodeCoords.has(st.file)) {{
-          const pt = nodeCoords.get(st.file);
-          panX = width / 2 - pt.x * scale;
-          panY = height / 2 - pt.y * scale;
-          const nodeObj = DATA.nodes.find(n => n.id === st.file);
-          if (nodeObj) activeNode = nodeObj;
-          clampCamera();
+        if (st.file) {{
+          flyToNode(st.file);
         }}
       }}
     }}
@@ -1481,7 +2217,12 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
       }}
     }}
 
-    // Initial Fit-To-Screen on Launch
+    function toggleHistoryDrawer() {{
+      const drw = document.getElementById("historyDrawer");
+      drw?.classList.toggle("translate-y-[200%]");
+    }}
+
+    // Initial setup
     fitToScreen();
     requestAnimationFrame(draw);
     if (DATA.steps.length) setStep(0);
@@ -1492,7 +2233,7 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
     return html
 
 def main():
-    parser = argparse.ArgumentParser(description="Code Earth - Topographic Semantic Zoom Engine")
+    parser = argparse.ArgumentParser(description="Code Earth - Unified Multi-Perspective Visualizer")
     parser.add_argument("--workspace", default=os.getcwd())
     parser.add_argument("--transcript", default=None)
     parser.add_argument("--output", default="flight_deck.html")
@@ -1538,7 +2279,7 @@ def main():
     with open(out_p, "w", encoding="utf-8") as fp:
         fp.write(deck_html)
 
-    print(f"[+] Code Earth planetary visualizer generated at: {out_p}")
+    print(f"[+] Code Earth multi-view visualizer generated at: {out_p}")
     return 0
 
 if __name__ == "__main__":
