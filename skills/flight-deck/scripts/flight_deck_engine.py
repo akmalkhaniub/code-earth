@@ -3,13 +3,15 @@
 Code Earth - Planetary Topographic Semantic Zoom Engine
 Visualizes a codebase as a living, organic digital planet in a clean, modern light aesthetic:
 - Organic Tectonic Continents with topographic elevation contours (no rectangular boxes!)
-- Seismic Epicenters with animated shockwaves and blast radius particle highways
+- Authentic File Extension Icon Badges (Python, TypeScript, JS, JSON, HTML, Markdown, etc.)
+- Zero Annoying Wave Emissions: Calm, serene, and professional status indicators
+- GIF-like interactive micro-sheen on hover / active state
+- Ground Code View: Sleek IDE card preview on deep zoom
 - Responsive header with live zoom percentage and active altitude indicator
 - Interactive Radar / Minimap to never lose orientation
 - Clamped camera bounds and "Fit to Screen" (cannot get lost off-screen!)
 - Ambient In-Situ Telemetry Reticles (zero screen-blocking drawers)
 - Distraction-free: bottom flight steps hidden by default in an optional toggle
-- Topographic Code Strata etched directly into the bedrock on ground zoom
 """
 
 import os
@@ -141,7 +143,7 @@ def build_workspace_graph(repo_root: Path, max_files=200):
         for f in files:
             p = (Path(root) / f).resolve()
             rel_str = str(p.relative_to(repo_root)).replace('\\', '/')
-            if f.endswith(('.py', '.js', '.jsx', '.ts', '.tsx', '.json', '.md', '.html', '.css', '.go', '.rs')):
+            if f.endswith(('.py', '.js', '.jsx', '.ts', '.tsx', '.json', '.md', '.html', '.css', '.go', '.rs', '.sh', '.yml', '.yaml')):
                 if f.endswith('.py'):
                     known_py_files[p] = rel_str
                 file_data[rel_str] = {"abs": p, "name": f}
@@ -182,16 +184,39 @@ def build_workspace_graph(repo_root: Path, max_files=200):
                                 if cand.resolve() in known_py_files:
                                     target_cand = known_py_files[cand.resolve()]
                                     break
+
                     if target_cand and target_cand != rel_str:
                         dependencies[rel_str].add(target_cand)
                         dependents[target_cand].add(rel_str)
             except Exception:
                 pass
 
+        elif rel_str.endswith(('.js', '.ts', '.jsx', '.tsx')):
+            try:
+                with open(abs_p, 'r', encoding='utf-8', errors='ignore') as fp:
+                    for line in fp:
+                        m = re.search(r"""(?:import|require)\s*\(?['"](\.[^'"]+)['"]""", line)
+                        if m:
+                            imp_sub = m.group(1)
+                            resolved_dir = abs_p.parent
+                            for cand_ext in ['', '.ts', '.tsx', '.js', '.jsx', '/index.ts', '/index.js']:
+                                cand = (resolved_dir / (imp_sub + cand_ext)).resolve()
+                                if cand.is_file():
+                                    try:
+                                        target_cand = str(cand.relative_to(repo_root)).replace('\\', '/')
+                                        if target_cand != rel_str:
+                                            dependencies[rel_str].add(target_cand)
+                                            dependents[target_cand].add(rel_str)
+                                            break
+                                    except Exception:
+                                        pass
+            except Exception:
+                pass
+
     return file_data, dependencies, dependents
 
 def parse_transcript_events(transcript_path: Path, repo_root: Path):
-    """Reconstructs the agent's flight path from transcript.jsonl."""
+    """Reconstructs the agent flight path from transcript.jsonl."""
     steps = []
     file_events = defaultdict(list)
     test_runs = []
@@ -204,35 +229,35 @@ def parse_transcript_events(transcript_path: Path, repo_root: Path):
         with open(transcript_path, 'r', encoding='utf-8', errors='ignore') as fp:
             for line in fp:
                 line = line.strip()
-                if not line: continue
-                try: record = json.loads(line)
-                except Exception: continue
+                if not line:
+                    continue
+                try:
+                    entry = json.loads(line)
+                except Exception:
+                    continue
 
-                tool_calls = record.get("tool_calls", [])
-                thinking = record.get("thinking", "")
-                thought_snip = thinking.strip().split("\n")[0][:120] if thinking else ""
+                tool_calls = entry.get("tool_calls", [])
+                thinking = entry.get("thinking", "")
+                thought_snip = (thinking[:140] + "...") if thinking else ""
 
                 for tc in tool_calls:
-                    fn = tc.get("name")
-                    args = tc.get("args", {})
-                    target_file = None
-                    action = None
+                    fn = tc.get("name") or tc.get("tool") or ""
+                    args = tc.get("args") or tc.get("arguments") or {}
 
-                    if fn == "read_file":
-                        action = "read"
-                        target_file = args.get("Path", "")
-                    elif fn in ("write_file", "edit_file"):
+                    target_file = None
+                    action = "read"
+
+                    if fn in ("write_file", "edit_file"):
+                        target_file = args.get("Path") or args.get("path")
                         action = "edit"
-                        target_file = args.get("Path", "")
+                    elif fn == "read_file":
+                        target_file = args.get("Path") or args.get("path")
+                        action = "read"
                     elif fn == "run_command":
-                        cmd = args.get("CommandLine", "")
-                        summary = args.get("toolSummary", cmd)
-                        is_test = any(t in cmd.lower() for t in ["test", "pytest", "jest", "vitest"])
-                        if is_test:
-                            content = record.get("content", "")
-                            passed = "FAILED" not in content and "ERROR" not in content
-                            test_runs.append({"step": step_counter, "cmd": cmd, "passed": passed})
-                        steps.append({"step": step_counter, "type": "command", "cmd": cmd, "summary": summary, "thought": thought_snip})
+                        cmd = args.get("CommandLine", "") or args.get("command", "")
+                        if "pytest" in cmd or "npm test" in cmd or "test" in cmd:
+                            test_runs.append({"step": step_counter, "cmd": cmd, "status": "pass"})
+                        steps.append({"step": step_counter, "type": "exec", "summary": f"run: {cmd[:60]}", "thought": thought_snip})
                         step_counter += 1
                         continue
 
@@ -305,9 +330,12 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
             mod = f"{parts[0]}/{parts[1]}"
         modules[mod].append(fpath)
 
+        ext = Path(fpath).suffix.lower().lstrip('.') or ("git" if "git" in fpath.lower() else "file")
+
         nodes.append({
             "id": fpath,
             "name": fpath.split('/')[-1],
+            "ext": ext,
             "dir": '/'.join(fpath.split('/')[:-1]) or '.',
             "module": mod,
             "tier": tier,
@@ -344,8 +372,7 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Code Earth - {repo_name}</title>
+  <title>Code Earth - Planetary Semantic Architecture</title>
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <style>
     body {{
@@ -417,7 +444,7 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
       <button id="btnContinent" onclick="setAltitude(0.85)" class="px-2.5 py-1 rounded-full text-xs font-medium transition text-slate-700 hover:bg-slate-100" title="Module Continent">
         Continent
       </button>
-      <button id="btnCode" onclick="setAltitude(2.8)" class="px-2.5 py-1 rounded-full text-xs font-medium transition text-slate-700 hover:bg-slate-100" title="Ground Code View">
+      <button id="btnCode" onclick="setAltitude(2.4)" class="px-2.5 py-1 rounded-full text-xs font-medium transition text-slate-700 hover:bg-slate-100" title="Ground Code View">
         Code
       </button>
 
@@ -495,6 +522,180 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
 
   <script>
     const DATA = {payload_json};
+
+    // ==========================================
+    // AUTHENTIC FILE EXTENSION ICONS & BADGES
+    // ==========================================
+    const FILE_TYPES = {{
+      py: {{
+        key: "py",
+        label: "PY",
+        name: "Python Script",
+        bg: "#0f172a",
+        color: "#ffd438",
+        svg: `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" rx="7" fill="#0f172a"/><path d="M15.9 4c-5.2 0-4.9 2.3-4.9 2.3l.0 2.4h5v.8h-7.1c-3.4 0-6 2-6 6 0 3.9 2.6 5.8 6 5.8h1.8v-2.7c0-3 2.6-3 2.6-3h5c2.4 0 2.4-2.3 2.4-2.3v-4.5c0-4.4-2.3-4.8-4.8-4.8zm-1.4 1.8a.9.9 0 1 1 0 1.8.9.9 0 0 1 0-1.8z" fill="#387eb8"/><path d="M16.1 28c5.2 0 4.9-2.3 4.9-2.3l-.0-2.4h-5v-.8h7.1c3.4 0 6-2 6-6 0-3.9-2.6-5.8-6-5.8h-1.8v2.7c0 3-2.6 3-2.6 3h-5c-2.4 0-2.4 2.3-2.4 2.3v4.5c0 4.4 2.3 4.8 4.8 4.8zm1.4-1.8a.9.9 0 1 1 0-1.8.9.9 0 0 1 0 1.8z" fill="#ffd438"/></svg>`
+      }},
+      ts: {{
+        key: "ts",
+        label: "TS",
+        name: "TypeScript Module",
+        bg: "#3178c6",
+        color: "#ffffff",
+        svg: `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" rx="7" fill="#3178c6"/><text x="16" y="22" font-family="-apple-system, system-ui, sans-serif" font-weight="900" font-size="15" fill="#ffffff" text-anchor="middle">TS</text></svg>`
+      }},
+      tsx: {{
+        key: "tsx",
+        label: "TSX",
+        name: "React TypeScript",
+        bg: "#1e293b",
+        color: "#61dafb",
+        svg: `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" rx="7" fill="#1e293b"/><text x="16" y="21" font-family="-apple-system, system-ui, sans-serif" font-weight="900" font-size="12" fill="#61dafb" text-anchor="middle">TSX</text></svg>`
+      }},
+      js: {{
+        key: "js",
+        label: "JS",
+        name: "JavaScript Source",
+        bg: "#f7df1e",
+        color: "#000000",
+        svg: `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" rx="7" fill="#f7df1e"/><text x="16" y="22" font-family="-apple-system, system-ui, sans-serif" font-weight="900" font-size="15" fill="#000000" text-anchor="middle">JS</text></svg>`
+      }},
+      jsx: {{
+        key: "jsx",
+        label: "JSX",
+        name: "React JavaScript",
+        bg: "#20232a",
+        color: "#61dafb",
+        svg: `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" rx="7" fill="#20232a"/><text x="16" y="21" font-family="-apple-system, system-ui, sans-serif" font-weight="900" font-size="12" fill="#61dafb" text-anchor="middle">JSX</text></svg>`
+      }},
+      json: {{
+        key: "json",
+        label: "{{}}",
+        name: "JSON Configuration",
+        bg: "#059669",
+        color: "#ffffff",
+        svg: `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" rx="7" fill="#059669"/><text x="16" y="22" font-family="monospace" font-weight="900" font-size="17" fill="#ffffff" text-anchor="middle">&#123;&#125;</text></svg>`
+      }},
+      md: {{
+        key: "md",
+        label: "MD",
+        name: "Markdown Document",
+        bg: "#0284c7",
+        color: "#ffffff",
+        svg: `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" rx="7" fill="#0284c7"/><path fill="#ffffff" d="M7 10v12h3.5v-7l3.5 4.5 3.5-4.5v7H21V10h-3.5l-3.5 4.5L10.5 10H7zm17.5 0v7h-2.5l4 5 4-5h-2.5v-7h-3z"/></svg>`
+      }},
+      html: {{
+        key: "html",
+        label: "<>",
+        name: "HTML5 Document",
+        bg: "#e34f26",
+        color: "#ffffff",
+        svg: `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" rx="7" fill="#e34f26"/><text x="16" y="22" font-family="-apple-system, system-ui, sans-serif" font-weight="900" font-size="12" fill="#ffffff" text-anchor="middle">&lt;/&gt;</text></svg>`
+      }},
+      css: {{
+        key: "css",
+        label: "#",
+        name: "CSS3 Stylesheet",
+        bg: "#2563eb",
+        color: "#ffffff",
+        svg: `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" rx="7" fill="#2563eb"/><text x="16" y="23" font-family="-apple-system, system-ui, sans-serif" font-weight="900" font-size="18" fill="#ffffff" text-anchor="middle">#</text></svg>`
+      }},
+      sh: {{
+        key: "sh",
+        label: ">_",
+        name: "Shell Script",
+        bg: "#0f172a",
+        color: "#22c55e",
+        svg: `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" rx="7" fill="#0f172a"/><text x="16" y="22" font-family="monospace" font-weight="bold" font-size="16" fill="#22c55e" text-anchor="middle">&gt;_</text></svg>`
+      }},
+      yml: {{
+        key: "yml",
+        label: "YML",
+        name: "YAML / Config",
+        bg: "#7c3aed",
+        color: "#ffffff",
+        svg: `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" rx="7" fill="#7c3aed"/><text x="16" y="21" font-family="-apple-system, system-ui, sans-serif" font-weight="bold" font-size="11" fill="#ffffff" text-anchor="middle">YML</text></svg>`
+      }},
+      git: {{
+        key: "git",
+        label: "GIT",
+        name: "Git Repository File",
+        bg: "#f05032",
+        color: "#ffffff",
+        svg: `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" rx="7" fill="#f05032"/><circle cx="12" cy="12" r="2.5" fill="#ffffff"/><circle cx="12" cy="20" r="2.5" fill="#ffffff"/><circle cx="20" cy="16" r="2.5" fill="#ffffff"/><path d="M12 12v8M12 16h4a4 4 0 0 0 4-4" stroke="#ffffff" stroke-width="2" fill="none"/></svg>`
+      }},
+      rs: {{
+        key: "rs",
+        label: "RS",
+        name: "Rust Source",
+        bg: "#ea580c",
+        color: "#ffffff",
+        svg: `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" rx="7" fill="#ea580c"/><text x="16" y="22" font-family="-apple-system, system-ui, sans-serif" font-weight="900" font-size="14" fill="#ffffff" text-anchor="middle">RS</text></svg>`
+      }},
+      go: {{
+        key: "go",
+        label: "GO",
+        name: "Go Source",
+        bg: "#00add8",
+        color: "#ffffff",
+        svg: `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" rx="7" fill="#00add8"/><text x="16" y="22" font-family="-apple-system, system-ui, sans-serif" font-weight="900" font-size="14" fill="#ffffff" text-anchor="middle">GO</text></svg>`
+      }},
+      sql: {{
+        key: "sql",
+        label: "SQL",
+        name: "Database SQL",
+        bg: "#0284c7",
+        color: "#ffffff",
+        svg: `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" rx="7" fill="#0284c7"/><text x="16" y="22" font-family="-apple-system, system-ui, sans-serif" font-weight="900" font-size="12" fill="#ffffff" text-anchor="middle">SQL</text></svg>`
+      }},
+      image: {{
+        key: "image",
+        label: "IMG",
+        name: "Image Asset",
+        bg: "#db2777",
+        color: "#ffffff",
+        svg: `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" rx="7" fill="#db2777"/><circle cx="12" cy="12" r="3" fill="#ffffff"/><path d="M6 22l6-8 5 6 4-4 5 6H6z" fill="#ffffff"/></svg>`
+      }},
+      default: {{
+        key: "default",
+        label: "FILE",
+        name: "Source File",
+        bg: "#64748b",
+        color: "#ffffff",
+        svg: `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" rx="7" fill="#64748b"/><path d="M11 8h7l5 5v11H11V8zm6 1v5h5" fill="#ffffff" stroke="#64748b" stroke-width="1.5"/></svg>`
+      }}
+    }};
+
+    // Preload SVG Icon Images into fast canvas cache
+    const iconImageCache = new Map();
+    Object.entries(FILE_TYPES).forEach(([k, t]) => {{
+      if (t.svg) {{
+        const img = new Image();
+        img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(t.svg);
+        iconImageCache.set(k, img);
+      }}
+    }});
+
+    function getFileType(filename) {{
+      const lower = (filename || "").toLowerCase();
+      const ext = lower.split('.').pop();
+      if (['py', 'pyi', 'pyw', 'ipynb'].includes(ext)) return FILE_TYPES.py;
+      if (ext === 'tsx') return FILE_TYPES.tsx;
+      if (ext === 'ts') return FILE_TYPES.ts;
+      if (ext === 'jsx') return FILE_TYPES.jsx;
+      if (['js', 'mjs', 'cjs'].includes(ext)) return FILE_TYPES.js;
+      if (['json', 'jsonl'].includes(ext)) return FILE_TYPES.json;
+      if (['md', 'markdown'].includes(ext)) return FILE_TYPES.md;
+      if (['html', 'htm'].includes(ext)) return FILE_TYPES.html;
+      if (['css', 'scss', 'sass', 'less'].includes(ext)) return FILE_TYPES.css;
+      if (['sh', 'bash', 'zsh', 'ps1', 'bat', 'cmd'].includes(ext)) return FILE_TYPES.sh;
+      if (['yml', 'yaml', 'toml', 'env', 'ini'].includes(ext)) return FILE_TYPES.yml;
+      if (lower.includes('git')) return FILE_TYPES.git;
+      if (ext === 'rs') return FILE_TYPES.rs;
+      if (ext === 'go') return FILE_TYPES.go;
+      if (['sql', 'sqlite', 'db'].includes(ext)) return FILE_TYPES.sql;
+      if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico'].includes(ext)) return FILE_TYPES.image;
+      return FILE_TYPES.default;
+    }}
 
     const canvas = document.getElementById("earthCanvas");
     const ctx = canvas.getContext("2d");
@@ -689,7 +890,7 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
           const pt = nodeCoords.get(n.id);
           if (!pt) continue;
           const distSq = (worldX - pt.x) ** 2 + (worldY - pt.y) ** 2;
-          const hitRadius = scale > 1.5 ? 90 : 25;
+          const hitRadius = scale > 1.7 ? 190 : 32;
           if (distSq <= hitRadius ** 2) {{
             found = n;
             break;
@@ -718,7 +919,7 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
       if (hoveredNode) {{
         const pt = nodeCoords.get(hoveredNode.id);
         if (pt) {{
-          scale = 2.8;
+          scale = 2.4;
           panX = width / 2 - pt.x * scale;
           panY = height / 2 - pt.y * scale;
           activeNode = hoveredNode;
@@ -944,7 +1145,7 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
       }});
 
       // ==========================================
-      // 3. SEISMIC BEACONS & CODE STRATA
+      // 3. AUTHENTIC FILE BADGES & CODE STRATA (Zero Annoying Waves!)
       // ==========================================
       DATA.nodes.forEach(node => {{
         const pt = nodeCoords.get(node.id);
@@ -952,92 +1153,217 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
 
         const isHovered = hoveredNode && hoveredNode.id === node.id;
         const isActive = activeNode && activeNode.id === node.id;
+        const ftype = getFileType(node.name || node.id);
+        const iconImg = iconImageCache.get(ftype.key);
 
-        let beaconColor = "#0284c7"; // Clean Azure
-        if (node.tier === 0) beaconColor = "#e11d48"; // Epicenter Rose
-        else if (node.tier === 1) beaconColor = "#ea580c"; // Ripple Tangerine
-        else if (node.tier === 2) beaconColor = "#d97706"; // Transitive Amber
-
-        // Shockwave rings for Epicenter
-        if (node.tier === 0) {{
-          for (let w = 0; w < 3; w++) {{
-            const waveProgress = ((animTime * 0.7 + w * 0.33) % 1.0);
-            const waveRadius = 12 + waveProgress * 85;
-            const waveOpacity = (1.0 - waveProgress) * 0.45;
-
-            ctx.beginPath();
-            ctx.arc(pt.x, pt.y, waveRadius, 0, Math.PI * 2);
-            ctx.strokeStyle = `rgba(225, 29, 72, ${{waveOpacity}})`;
-            ctx.lineWidth = 1.8 / scale;
-            ctx.stroke();
-          }}
-        }}
-
-        // Ground Code Level (Scale >= 1.8)
-        if (scale >= 1.8) {{
+        // GROUND CODE LEVEL (Scale >= 1.7)
+        if (scale >= 1.7) {{
           ctx.save();
           ctx.translate(pt.x, pt.y);
 
-          // Code Container (Clean white card)
+          const cardW = 380;
+          const cardH = 240;
+          const halfW = cardW / 2;
+          const halfH = cardH / 2;
+
+          // Code Container (Clean white card with soft elevation shadow)
           ctx.fillStyle = "#ffffff";
-          ctx.shadowColor = "rgba(15, 23, 42, 0.08)";
-          ctx.shadowBlur = 18;
-          ctx.shadowOffsetY = 4;
+          ctx.shadowColor = "rgba(15, 23, 42, 0.10)";
+          ctx.shadowBlur = 22;
+          ctx.shadowOffsetY = 6;
           ctx.beginPath();
-          ctx.arc(0, 0, 160, 0, Math.PI * 2);
+          ctx.roundRect(-halfW, -halfH, cardW, cardH, 14);
           ctx.fill();
           ctx.shadowBlur = 0;
+          ctx.shadowOffsetY = 0;
 
-          ctx.strokeStyle = isHovered || isActive ? "#0f172a" : (node.tier === 0 ? "#fda4af" : "#e2e8f0");
-          ctx.lineWidth = 1.5 / scale;
+          // Border based on blast tier
+          ctx.strokeStyle = isHovered || isActive ? "#0f172a" : (node.tier === 0 ? "#f43f5e" : (node.tier === 1 ? "#f59e0b" : "#e2e8f0"));
+          ctx.lineWidth = Math.max(1.5, 2.0 / scale);
           ctx.stroke();
 
-          // Title
+          // Header bar
+          ctx.fillStyle = "#f8fafc";
+          ctx.beginPath();
+          ctx.roundRect(-halfW, -halfH, cardW, 40, [14, 14, 0, 0]);
+          ctx.fill();
+          ctx.strokeStyle = "#e2e8f0";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(-halfW, -halfH + 40);
+          ctx.lineTo(halfW, -halfH + 40);
+          ctx.stroke();
+
+          // Header: File Extension Icon
+          if (iconImg && iconImg.complete && iconImg.naturalWidth !== 0) {{
+            ctx.drawImage(iconImg, -halfW + 12, -halfH + 8, 24, 24);
+          }} else {{
+            ctx.fillStyle = ftype.bg;
+            ctx.beginPath();
+            ctx.roundRect(-halfW + 12, -halfH + 8, 24, 24, 5);
+            ctx.fill();
+            ctx.fillStyle = ftype.color;
+            ctx.font = "bold 10px -apple-system, sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText(ftype.label, -halfW + 24, -halfH + 24);
+          }}
+
+          // Header: File Name
           ctx.fillStyle = "#0f172a";
           ctx.font = "bold 13px -apple-system, sans-serif";
-          ctx.textAlign = "center";
-          ctx.fillText(node.name, 0, -125);
+          ctx.textAlign = "left";
+          ctx.fillText(node.name, -halfW + 44, -halfH + 25);
 
-          // Lines
+          // Header: Tier Status Pill
+          const tierText = node.tier === 0 ? "⚡ EPICENTER" : (node.tier === 1 ? "▲ RIPPLE" : "✓ SAFE");
+          const tierColor = node.tier === 0 ? "#e11d48" : (node.tier === 1 ? "#d97706" : "#059669");
+          const tierBg = node.tier === 0 ? "#ffe4e6" : (node.tier === 1 ? "#fef3c7" : "#ecfdf5");
+          ctx.fillStyle = tierBg;
+          ctx.beginPath();
+          ctx.roundRect(halfW - 95, -halfH + 11, 82, 18, 9);
+          ctx.fill();
+          ctx.fillStyle = tierColor;
+          ctx.font = "bold 9px -apple-system, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(tierText, halfW - 54, -halfH + 23);
+
+          // Code Lines
           ctx.font = "10px SFMono-Regular, Consolas, monospace";
           ctx.textAlign = "left";
-          const lines = node.diffLines && node.diffLines.length ? node.diffLines.slice(0, 11) : (node.codeLines || []).slice(0, 11);
-          let ly = -95;
+          const lines = node.diffLines && node.diffLines.length ? node.diffLines.slice(0, 10) : (node.codeLines || []).slice(0, 10);
+          let ly = -halfH + 60;
 
           lines.forEach(l => {{
             if (l.type === "add") {{
               ctx.fillStyle = "#ecfdf5";
-              ctx.fillRect(-135, ly - 9, 270, 14);
+              ctx.fillRect(-halfW + 10, ly - 9, cardW - 20, 15);
               ctx.fillStyle = "#047857";
-              ctx.fillText(`+ ${{l.text.slice(0, 36)}}`, -130, ly + 2);
+              ctx.fillText(`+ ${{l.text.slice(0, 48)}}`, -halfW + 16, ly + 2);
             }} else if (l.type === "del") {{
               ctx.fillStyle = "#fff1f2";
-              ctx.fillRect(-135, ly - 9, 270, 14);
+              ctx.fillRect(-halfW + 10, ly - 9, cardW - 20, 15);
               ctx.fillStyle = "#be123c";
-              ctx.fillText(`- ${{l.text.slice(0, 36)}}`, -130, ly + 2);
+              ctx.fillText(`- ${{l.text.slice(0, 48)}}`, -halfW + 16, ly + 2);
             }} else {{
               ctx.fillStyle = "#475569";
               const txt = l.text !== undefined ? l.text : l;
-              ctx.fillText(`  ${{String(txt).slice(0, 36)}}`, -130, ly + 2);
+              ctx.fillText(`  ${{String(txt).slice(0, 48)}}`, -halfW + 16, ly + 2);
             }}
             ly += 16;
           }});
 
           ctx.restore();
         }}
-        // Beacon Node (Scale < 1.8)
+        // FILE BADGE / ICON LEVEL (Scale < 1.7)
         else {{
-          ctx.beginPath();
-          ctx.arc(pt.x, pt.y, isHovered || isActive ? 12 : 8, 0, Math.PI * 2);
-          ctx.fillStyle = beaconColor;
-          ctx.fill();
+          ctx.save();
+          ctx.translate(pt.x, pt.y);
 
-          if (scale > 0.55 || isHovered || isActive) {{
-            ctx.fillStyle = isHovered || isActive ? "#0f172a" : "#475569";
-            ctx.font = isHovered || isActive ? "600 12px -apple-system, sans-serif" : "11px -apple-system, sans-serif";
+          // Responsive badge size
+          let size = scale < 0.55 ? 26 : 34;
+          if (isHovered || isActive) size += 6;
+          const half = size / 2;
+
+          // Subtle shadow
+          ctx.shadowColor = "rgba(15, 23, 42, 0.12)";
+          ctx.shadowBlur = isHovered || isActive ? 14 : 6;
+          ctx.shadowOffsetY = 2;
+
+          // Badge Background
+          ctx.fillStyle = ftype.bg;
+          ctx.beginPath();
+          ctx.roundRect(-half, -half, size, size, 7);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetY = 0;
+
+          // File Extension SVG Icon / Glyph
+          if (iconImg && iconImg.complete && iconImg.naturalWidth !== 0) {{
+            const pad = 3;
+            ctx.drawImage(iconImg, -half + pad, -half + pad, size - pad * 2, size - pad * 2);
+          }} else {{
+            ctx.fillStyle = ftype.color;
+            ctx.font = `900 ${{Math.round(size * 0.40)}}px -apple-system, sans-serif`;
             ctx.textAlign = "center";
-            ctx.fillText(node.name, pt.x, pt.y + 19);
+            ctx.textBaseline = "middle";
+            ctx.fillText(ftype.label, 0, 0);
           }}
+
+          // Blast Radius Border (Crisp, No wave emission!)
+          let strokeColor = "rgba(255, 255, 255, 0.85)";
+          let strokeWidth = 1.2;
+          if (node.tier === 0) {{
+            strokeColor = "#f43f5e"; // Rose Epicenter
+            strokeWidth = 2.4;
+          }} else if (node.tier === 1) {{
+            strokeColor = "#f59e0b"; // Amber Ripple
+            strokeWidth = 2.0;
+          }} else if (isHovered || isActive) {{
+            strokeColor = "#0f172a";
+            strokeWidth = 1.8;
+          }}
+          ctx.strokeStyle = strokeColor;
+          ctx.lineWidth = strokeWidth;
+          ctx.stroke();
+
+          // Corner Status Pip (No radiating continuous rings!)
+          if (node.tier === 0) {{
+            // Ruby Red Status Pip on top-right
+            ctx.beginPath();
+            ctx.arc(half - 2, -half + 2, 4.5, 0, Math.PI * 2);
+            ctx.fillStyle = "#e11d48";
+            ctx.fill();
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          }} else if (node.tier === 1) {{
+            // Amber Pip on top-right
+            ctx.beginPath();
+            ctx.arc(half - 2, -half + 2, 4, 0, Math.PI * 2);
+            ctx.fillStyle = "#ea580c";
+            ctx.fill();
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 1.2;
+            ctx.stroke();
+          }}
+
+          // GIF-like Micro-Sheen on Hover / Active
+          if (isHovered || isActive) {{
+            const sheenT = (animTime * 1.4) % 2.2;
+            if (sheenT < 1.1) {{
+              ctx.save();
+              ctx.beginPath();
+              ctx.roundRect(-half, -half, size, size, 7);
+              ctx.clip();
+              const sx = -size + sheenT * size * 2.2;
+              const grad = ctx.createLinearGradient(sx, -half, sx + 14, half);
+              grad.addColorStop(0, "rgba(255, 255, 255, 0)");
+              grad.addColorStop(0.5, "rgba(255, 255, 255, 0.45)");
+              grad.addColorStop(1, "rgba(255, 255, 255, 0)");
+              ctx.fillStyle = grad;
+              ctx.fillRect(-half, -half, size, size);
+              ctx.restore();
+            }}
+          }}
+
+          // File Label Underneath
+          if (scale > 0.45 || isHovered || isActive) {{
+            ctx.fillStyle = isHovered || isActive ? "#0f172a" : "#334155";
+            ctx.font = isHovered || isActive ? "600 12px -apple-system, sans-serif" : "500 11px -apple-system, sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "top";
+            ctx.fillText(node.name, 0, half + 5);
+
+            // Change pill if modified
+            if (node.tier === 0 && (scale > 0.65 || isHovered)) {{
+              const diffStr = (node.added > 0 || node.deleted > 0) ? `+${{node.added}} -${{node.deleted}}` : "EDITED";
+              ctx.fillStyle = "#e11d48";
+              ctx.font = "bold 9px -apple-system, sans-serif";
+              ctx.fillText(diffStr, 0, half + 19);
+            }}
+          }}
+
+          ctx.restore();
         }}
 
         // ==========================================
@@ -1051,37 +1377,42 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
           ctx.strokeStyle = "#0f172a";
           ctx.lineWidth = 1.4 / scale;
           ctx.beginPath();
-          ctx.arc(0, 0, 20, 0, Math.PI * 2);
+          ctx.arc(0, 0, 24, 0, Math.PI * 2);
           ctx.stroke();
 
           // Floating Telemetry Box
-          const boxX = 30;
-          const boxY = -42;
+          const boxX = 32;
+          const boxY = -48;
           ctx.fillStyle = "rgba(255, 255, 255, 0.98)";
           ctx.strokeStyle = "#cbd5e1";
           ctx.lineWidth = 1 / scale;
           ctx.shadowColor = "rgba(15, 23, 42, 0.08)";
           ctx.shadowBlur = 14;
           ctx.beginPath();
-          ctx.roundRect(boxX, boxY, 155, 58, 8);
+          ctx.roundRect(boxX, boxY, 175, 66, 8);
           ctx.fill();
           ctx.shadowBlur = 0;
           ctx.stroke();
 
-          // Title
+          // Title & Extension Type
           ctx.fillStyle = "#0f172a";
           ctx.font = "bold 11px -apple-system, sans-serif";
           ctx.textAlign = "left";
           ctx.fillText(node.name, boxX + 10, boxY + 18);
 
+          // Type descriptor
+          ctx.fillStyle = "#64748b";
+          ctx.font = "9px -apple-system, sans-serif";
+          ctx.fillText(ftype.name, boxX + 10, boxY + 31);
+
           // Tier badge
-          ctx.font = "10px -apple-system, sans-serif";
+          ctx.font = "bold 9px -apple-system, sans-serif";
           ctx.fillStyle = node.tier === 0 ? "#e11d48" : (node.tier === 1 ? "#ea580c" : "#0284c7");
-          const tierLabel = node.tier === 0 ? "⚡ EPICENTER" : (node.tier === 1 ? "▲ RIPPLE ZONE" : "✓ SAFE NODE");
-          ctx.fillText(tierLabel, boxX + 10, boxY + 33);
+          const tierLabel = node.tier === 0 ? "⚡ EPICENTER (ACTIVE EDIT)" : (node.tier === 1 ? "▲ RIPPLE ZONE" : "✓ SAFE BEDROCK");
+          ctx.fillText(tierLabel, boxX + 10, boxY + 45);
 
           // Stats
-          ctx.fillStyle = "#64748b";
+          ctx.fillStyle = "#475569";
           let statText = "";
           if (node.added > 0 || node.deleted > 0) {{
             statText = `+${{node.added}} -${{node.deleted}} Diff | ${{node.inbound.length}} callers`;
@@ -1090,7 +1421,7 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
           }} else {{
             statText = `Clean Bedrock | ${{node.inbound.length}} callers`;
           }}
-          ctx.fillText(statText, boxX + 10, boxY + 47);
+          ctx.fillText(statText, boxX + 10, boxY + 58);
 
           ctx.restore();
         }}
