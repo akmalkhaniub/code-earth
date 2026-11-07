@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
 Code Earth - Planetary Topographic Semantic Zoom Engine
-Visualizes a codebase as a living, organic digital planet:
+Visualizes a codebase as a living, organic digital planet in a clean, modern light aesthetic:
 - Organic Tectonic Continents with topographic elevation contours (no rectangular boxes!)
 - Seismic Epicenters with animated shockwaves and blast radius particle highways
-- Floating In-Situ Telemetry Reticles (zero screen-blocking drawers)
+- Responsive header that never clips on narrow screens
+- Ambient In-Situ Telemetry Reticles (zero screen-blocking drawers)
+- Distraction-free: bottom flight steps hidden by default in an optional toggle
 - Topographic Code Strata etched directly into the bedrock on ground zoom
-- Antigravity Flight Path timeline scrubber
 """
 
 import os
@@ -280,7 +281,7 @@ def compute_blast_tiers(modified_files, dependents, file_events):
     return tier_map
 
 def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info, dependencies, dependents, steps, file_events, test_runs):
-    """Generates the organic topographic Code Earth canvas visualization."""
+    """Generates the organic topographic Code Earth canvas visualization in a clean, modern light aesthetic."""
 
     included_files = set(tier_map.keys())
     if not included_files:
@@ -346,9 +347,9 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <style>
     body {{
-      background: radial-gradient(circle at 50% 50%, #060913 0%, #010307 100%);
-      color: #f1f5f9;
-      font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       margin: 0;
       overflow: hidden;
       user-select: none;
@@ -360,101 +361,117 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
     canvas:active {{
       cursor: grabbing;
     }}
-    .hud-glass {{
-      background: rgba(10, 15, 29, 0.75);
-      backdrop-filter: blur(14px);
-      border: 1px solid rgba(56, 189, 248, 0.15);
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+    .panel-glass {{
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(226, 232, 240, 0.95);
+      box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
     }}
-    /* Custom scroll */
-    ::-webkit-scrollbar {{ width: 4px; }}
-    ::-webkit-scrollbar-thumb {{ background: rgba(56, 189, 248, 0.3); border-radius: 4px; }}
+    ::-webkit-scrollbar {{ width: 5px; }}
+    ::-webkit-scrollbar-thumb {{ background: #cbd5e1; border-radius: 4px; }}
   </style>
 </head>
 <body class="w-screen h-screen">
 
-  <!-- TOP MINIMALIST HUD (Planet Status & Altitude) -->
-  <header class="absolute top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
+  <!-- TOP RESPONSIVE HEADER BAR (Never clips offscreen) -->
+  <header class="absolute top-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
     
-    <!-- Planetary Condition -->
-    <div class="hud-glass rounded-full px-5 py-2.5 flex items-center gap-4 pointer-events-auto">
-      <div class="flex items-center gap-2.5">
-        <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_10px_#34d399] animate-pulse"></span>
-        <span class="font-bold text-xs tracking-wider text-slate-100 uppercase">Code Earth</span>
-        <span class="text-slate-500 text-xs">/</span>
-        <span class="text-slate-300 text-xs font-mono">{repo_name}</span>
+    <!-- Title & Condition Badge -->
+    <div class="panel-glass rounded-full px-4 py-2 flex items-center gap-3 pointer-events-auto max-w-full">
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_6px_#10b981]"></span>
+        <span class="font-bold text-xs tracking-wider text-slate-900 uppercase">Code Earth</span>
+        <span class="text-slate-300 text-xs">/</span>
+        <span class="text-slate-600 text-xs font-mono truncate max-w-[140px]" title="{repo_name}">{repo_name}</span>
       </div>
 
-      <div class="h-4 w-px bg-slate-700/80"></div>
+      <div class="h-4 w-px bg-slate-200"></div>
 
-      <!-- Seismic Blast Status -->
-      <div class="flex items-center gap-3.5 text-xs">
-        <div class="flex items-center gap-1.5" title="Direct Epicenter Edits">
-          <span class="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_0_8px_#f43f5e] animate-ping"></span>
-          <span class="font-bold text-rose-300" id="stat-epicenter">0</span>
-          <span class="text-slate-400 text-[11px]">Epicenter</span>
+      <!-- Quick Metrics -->
+      <div class="flex items-center gap-3 text-xs">
+        <div class="flex items-center gap-1.5" title="Direct Changes">
+          <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+          <span class="font-bold text-rose-600" id="stat-epicenter">0</span>
+          <span class="text-slate-500 text-[11px] hidden sm:inline">Epicenter</span>
         </div>
-        <div class="flex items-center gap-1.5" title="Direct Ripple Consumers">
-          <span class="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_6px_#fbbf24]"></span>
-          <span class="font-bold text-amber-300" id="stat-ripple">0</span>
-          <span class="text-slate-400 text-[11px]">Ripple</span>
+        <div class="flex items-center gap-1.5" title="Direct Dependents">
+          <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+          <span class="font-bold text-amber-600" id="stat-ripple">0</span>
+          <span class="text-slate-500 text-[11px] hidden sm:inline">Ripple</span>
         </div>
-        <div class="flex items-center gap-1.5" title="Verified Safe Zones">
-          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-          <span class="font-bold text-emerald-300" id="stat-safe">0</span>
-          <span class="text-slate-400 text-[11px]">Safe</span>
+        <div class="flex items-center gap-1.5" title="Safe Modules">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span class="font-bold text-emerald-600" id="stat-safe">0</span>
+          <span class="text-slate-500 text-[11px] hidden sm:inline">Safe</span>
         </div>
       </div>
     </div>
 
-    <!-- Altitude Orbit Jumpers & Fullscreen -->
-    <div class="hud-glass rounded-full px-3 py-1.5 flex items-center gap-1 pointer-events-auto">
-      <button onclick="setAltitude(0.28)" class="px-3 py-1 hover:bg-sky-500/10 rounded-full text-slate-300 hover:text-sky-300 text-xs font-medium transition" title="Global Planet Orbit">
-        🛰️ Orbit
+    <!-- Altitude & Zoom Toolbar -->
+    <div class="panel-glass rounded-full px-2.5 py-1.5 flex items-center gap-1 pointer-events-auto">
+      <button onclick="setAltitude(0.28)" class="px-2.5 py-1 hover:bg-slate-100 rounded-full text-slate-700 text-xs font-medium transition" title="Planet Orbit">
+        Orbit
       </button>
-      <button onclick="setAltitude(0.85)" class="px-3 py-1 hover:bg-sky-500/10 rounded-full text-slate-300 hover:text-sky-300 text-xs font-medium transition" title="Continent / Module">
-        🧭 Continent
+      <button onclick="setAltitude(0.85)" class="px-2.5 py-1 hover:bg-slate-100 rounded-full text-slate-700 text-xs font-medium transition" title="Module Continent">
+        Continent
       </button>
-      <button onclick="setAltitude(2.8)" class="px-3 py-1 bg-sky-500/20 text-sky-300 border border-sky-500/30 rounded-full text-xs font-bold transition" title="Topographic Ground Code">
-        🔬 Code Strata
+      <button onclick="setAltitude(2.8)" class="px-2.5 py-1 bg-slate-100 text-slate-900 rounded-full text-xs font-semibold transition" title="Ground Code View">
+        Code
       </button>
-      <button onclick="resetCamera()" class="p-1.5 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white text-xs ml-1" title="Reset Camera">
+      <div class="h-4 w-px bg-slate-200 mx-0.5"></div>
+      <button onclick="zoomDelta(1.25)" class="w-7 h-7 flex items-center justify-center hover:bg-slate-100 text-slate-700 rounded-full text-xs font-bold" title="Zoom In">
+        +
+      </button>
+      <button onclick="zoomDelta(0.8)" class="w-7 h-7 flex items-center justify-center hover:bg-slate-100 text-slate-700 rounded-full text-xs font-bold" title="Zoom Out">
+        -
+      </button>
+      <button onclick="resetCamera()" class="w-7 h-7 flex items-center justify-center hover:bg-slate-100 text-slate-700 rounded-full text-xs" title="Reset View">
         ↺
       </button>
-      <button onclick="toggleFullScreen()" class="px-2.5 py-1 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 rounded-full text-xs font-semibold transition ml-1 flex items-center gap-1" title="Toggle Full Screen (F11)">
-        ⛶ Fullscreen
+      <button onclick="toggleFullScreen()" class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-full text-xs font-medium transition ml-1" title="Fullscreen (F11)">
+        ⛶
       </button>
     </div>
   </header>
 
-  <!-- 100% FULLSCREEN TOPOGRAPHIC CANVAS -->
+  <!-- 100% CLEAN CANVAS -->
   <canvas id="earthCanvas" class="w-full h-full"></canvas>
 
-  <!-- BOTTOM AMBIENT FLIGHT RECORDER (Non-Intrusive) -->
-  <footer class="absolute bottom-4 left-6 right-6 z-20 flex flex-col gap-2 pointer-events-none items-center">
-    
-    <!-- In-flight Thought Bubble -->
-    <div id="thoughtPill" class="hud-glass rounded-full px-5 py-2 max-w-xl w-full flex items-center justify-between gap-3 pointer-events-auto shadow-2xl transition-all duration-300">
-      <div class="flex items-center gap-2.5 min-w-0">
-        <span id="flightStep" class="px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 font-mono font-bold text-[10px]">Step 1</span>
-        <p id="flightThought" class="text-slate-300 text-xs truncate">Exploring global topographic architecture...</p>
+  <!-- OPTIONAL FLOATING DRAWER FOR AGENT FLIGHT PATH (Hidden by default, zero clutter) -->
+  <aside id="historyDrawer" class="fixed bottom-14 right-4 max-w-sm w-full panel-glass rounded-2xl p-4 shadow-2xl transition-all duration-300 translate-y-[200%] pointer-events-auto z-30">
+    <div class="flex items-center justify-between pb-2 border-b border-slate-200">
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-bold uppercase tracking-wider text-slate-800">Flight Path Replay</span>
+        <span id="stepCount" class="text-[11px] font-mono text-slate-500">0 / 0</span>
       </div>
-      <span id="flightAction" class="text-[9px] font-mono px-2 py-0.5 rounded bg-slate-800/80 text-sky-300 uppercase tracking-widest">IDLE</span>
+      <button onclick="toggleHistoryDrawer()" class="text-slate-400 hover:text-slate-700 text-sm p-1">✕</button>
+    </div>
+    
+    <div class="py-3">
+      <div class="flex items-center gap-2 mb-2">
+        <span id="flightStep" class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-mono text-[10px] font-bold">Step 1</span>
+        <span id="flightAction" class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 uppercase">IDLE</span>
+      </div>
+      <p id="flightThought" class="text-xs text-slate-600 line-clamp-2">Replaying agent actions across repository...</p>
     </div>
 
-    <!-- Minimalist Scrubber Ribbon -->
-    <div class="hud-glass rounded-full px-4 py-2 w-full max-w-2xl flex items-center gap-3 pointer-events-auto">
-      <button id="btnPlay" onclick="togglePlay()" class="w-7 h-7 rounded-full bg-sky-500/20 hover:bg-sky-500/40 text-sky-300 border border-sky-500/30 flex items-center justify-center font-bold text-xs transition">
+    <div class="flex items-center gap-3 pt-1">
+      <button id="btnPlay" onclick="togglePlay()" class="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs transition hover:bg-slate-800">
         ▶
       </button>
-      <span class="text-slate-400 font-mono text-[11px] min-w-[50px]" id="stepCount">0 / 0</span>
-      <div class="flex-1 relative flex items-center">
-        <input id="timeline" type="range" min="0" max="1" value="0" step="1" 
-               class="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-400 focus:outline-none">
-      </div>
-      <button onclick="stepDelta(-1)" class="p-1 hover:text-white text-slate-400 text-xs">◀</button>
-      <button onclick="stepDelta(1)" class="p-1 hover:text-white text-slate-400 text-xs">▶</button>
+      <input id="timeline" type="range" min="0" max="1" value="0" step="1" 
+             class="flex-1 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-900 focus:outline-none">
+      <button onclick="stepDelta(-1)" class="p-1 hover:text-slate-900 text-slate-500 text-xs">◀</button>
+      <button onclick="stepDelta(1)" class="p-1 hover:text-slate-900 text-slate-500 text-xs">▶</button>
     </div>
+  </aside>
+
+  <!-- BOTTOM STATUS PILL & HISTORY TOGGLE (Minimalist, unobtrusive) -->
+  <footer class="absolute bottom-3 right-4 z-20 pointer-events-none">
+    <button onclick="toggleHistoryDrawer()" class="panel-glass rounded-full px-3.5 py-1.5 text-xs text-slate-700 font-medium hover:bg-white transition flex items-center gap-1.5 pointer-events-auto shadow-md">
+      <span>⏱️</span>
+      <span>Flight History</span>
+    </button>
   </footer>
 
   <script>
@@ -471,7 +488,7 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
     }});
 
     // Camera State
-    let scale = 0.32;
+    let scale = 0.35;
     let panX = width / 2;
     let panY = height / 2;
     let isDragging = false;
@@ -498,8 +515,8 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
     const nodeCoords = new Map();
 
     const cols = Math.ceil(Math.sqrt(moduleList.length || 1));
-    const continentSpacingX = 950;
-    const continentSpacingY = 800;
+    const continentSpacingX = 900;
+    const continentSpacingY = 750;
 
     // Generate organic coastline polygons with harmonic noise
     moduleList.forEach((modName, mi) => {{
@@ -509,15 +526,13 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
       const cy = (row - Math.ceil(moduleList.length / cols) / 2 + 0.5) * continentSpacingY;
 
       const files = DATA.modules[modName];
-      const baseRadius = Math.max(220, Math.sqrt(files.length) * 125);
+      const baseRadius = Math.max(200, Math.sqrt(files.length) * 115);
 
-      // Create organic contour vertices
       const numPoints = 32;
       const coastlinePoints = [];
       for (let i = 0; i < numPoints; i++) {{
         const theta = (i / numPoints) * Math.PI * 2;
-        // Harmonic organic perturbation
-        const rNoise = baseRadius * (1.0 + 0.14 * Math.sin(theta * 3 + mi) + 0.08 * Math.cos(theta * 5 - mi * 2));
+        const rNoise = baseRadius * (1.0 + 0.12 * Math.sin(theta * 3 + mi) + 0.06 * Math.cos(theta * 5 - mi * 2));
         coastlinePoints.push({{
           x: cx + Math.cos(theta) * rNoise,
           y: cy + Math.sin(theta) * rNoise
@@ -532,10 +547,9 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
         }})
       }});
 
-      // Position file beacons within the continent
       files.forEach((fpath, fi) => {{
         const angle = (fi / files.length) * Math.PI * 2 + (mi * 0.4);
-        const dist = Math.min(baseRadius - 70, (fi + 1) * 55);
+        const dist = Math.min(baseRadius - 60, (fi + 1) * 50);
         nodeCoords.set(fpath, {{
           x: cx + Math.cos(angle) * dist,
           y: cy + Math.sin(angle) * dist
@@ -543,10 +557,9 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
       }});
     }});
 
-    // Animation Clock
     let animTime = 0;
 
-    // Mouse & Zoom
+    // Mouse Navigation
     canvas.addEventListener("wheel", (e) => {{
       e.preventDefault();
       const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
@@ -569,10 +582,9 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
 
     window.addEventListener("mousemove", (e) => {{
       if (isDragging) {{
-        panX = e.clientX - startX;
-        panY = e.clientY - startY;
+        panX += e.clientX - startX;
+        panY += e.clientY - startY;
       }} else {{
-        // Hit test for beacons
         const worldX = (e.clientX - panX) / scale;
         const worldY = (e.clientY - panY) / scale;
         let found = null;
@@ -605,55 +617,73 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
       }}
     }});
 
-    function toggleFullScreen() {{
-      if (!document.fullscreenElement) {{
-        document.documentElement.requestFullscreen().catch(err => {{
-          window.open(window.location.href, '_blank');
-        }});
-      }} else {{
-        if (document.exitFullscreen) {{
-          document.exitFullscreen();
-        }}
-      }}
-    }}
-
     function setAltitude(s) {{
       scale = s;
     }}
 
+    function zoomDelta(factor) {{
+      scale = Math.min(Math.max(scale * factor, 0.12), 7.0);
+    }}
+
     function resetCamera() {{
-      scale = 0.32;
+      scale = 0.35;
       panX = width / 2;
       panY = height / 2;
       activeNode = null;
     }}
 
-    // MAIN RENDER LOOP (60fps)
+    function toggleFullScreen() {{
+      if (!document.fullscreenElement) {{
+        document.documentElement.requestFullscreen().catch(() => {{
+          window.open(window.location.href, '_blank');
+        }});
+      }} else if (document.exitFullscreen) {{
+        document.exitFullscreen();
+      }}
+    }}
+
+    // History Drawer Toggle
+    let historyOpen = false;
+    function toggleHistoryDrawer() {{
+      historyOpen = !historyOpen;
+      const drw = document.getElementById("historyDrawer");
+      if (historyOpen) {{
+        drw.classList.remove("translate-y-[200%]");
+      }} else {{
+        drw.classList.add("translate-y-[200%]");
+      }}
+    }}
+
+    // MAIN RENDER LOOP (60fps, Clean Light Aesthetic)
     function draw() {{
       animTime += 0.025;
       ctx.clearRect(0, 0, width, height);
+
+      // Background Subtle Canvas
+      ctx.fillStyle = "#f8fafc";
+      ctx.fillRect(0, 0, width, height);
 
       ctx.save();
       ctx.translate(panX, panY);
       ctx.scale(scale, scale);
 
       // ==========================================
-      // 1. ORGANIC TECTONIC CONTINENTS & CONTOURS
+      // 1. ORGANIC TECTONIC CONTINENTS (Light Paper Bedrock)
       // ==========================================
       continentLayout.forEach((cont, modName) => {{
         const pts = cont.points;
         if (!pts.length) return;
 
-        // Outer Oceanic Shelf Glow
-        const shelfGrad = ctx.createRadialGradient(cont.cx, cont.cy, cont.baseRadius * 0.3, cont.cx, cont.cy, cont.baseRadius * 1.3);
-        shelfGrad.addColorStop(0, cont.hasEpicenter ? "rgba(244, 63, 94, 0.12)" : "rgba(14, 165, 233, 0.08)");
-        shelfGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+        // Shelf Halo
+        const shelfGrad = ctx.createRadialGradient(cont.cx, cont.cy, cont.baseRadius * 0.3, cont.cx, cont.cy, cont.baseRadius * 1.25);
+        shelfGrad.addColorStop(0, cont.hasEpicenter ? "rgba(254, 226, 226, 0.6)" : "rgba(241, 245, 249, 0.8)");
+        shelfGrad.addColorStop(1, "rgba(248, 250, 252, 0)");
         ctx.fillStyle = shelfGrad;
         ctx.beginPath();
-        ctx.arc(cont.cx, cont.cy, cont.baseRadius * 1.3, 0, Math.PI * 2);
+        ctx.arc(cont.cx, cont.cy, cont.baseRadius * 1.25, 0, Math.PI * 2);
         ctx.fill();
 
-        // Organic Landmass Bedrock
+        // Landmass Bedrock (Pure Clean White with Drop Shadow)
         ctx.beginPath();
         ctx.moveTo(pts[0].x, pts[0].y);
         for (let i = 1; i < pts.length; i++) {{
@@ -664,18 +694,20 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
           ctx.quadraticCurveTo(prev.x, prev.y, mx, my);
         }}
         ctx.closePath();
-        ctx.fillStyle = "rgba(10, 15, 29, 0.85)";
+        ctx.fillStyle = "#ffffff";
+        ctx.shadowColor = "rgba(15, 23, 42, 0.06)";
+        ctx.shadowBlur = 24;
+        ctx.shadowOffsetY = 4;
         ctx.fill();
-
-        // Glowing Coastline
-        ctx.strokeStyle = cont.hasEpicenter ? "rgba(244, 63, 94, 0.6)" : "rgba(56, 189, 248, 0.4)";
-        ctx.lineWidth = 2 / scale;
-        ctx.shadowColor = cont.hasEpicenter ? "#f43f5e" : "#38bdf8";
-        ctx.shadowBlur = 12;
-        ctx.stroke();
         ctx.shadowBlur = 0;
+        ctx.shadowOffsetY = 0;
 
-        // Concentric Topographic Elevation Contours (Internal Strata)
+        // Clean Coastline Border
+        ctx.strokeStyle = cont.hasEpicenter ? "#fda4af" : "#cbd5e1";
+        ctx.lineWidth = 1.8 / scale;
+        ctx.stroke();
+
+        // Delicate Elevation Contours
         [0.78, 0.55, 0.35].forEach((ratio, idx) => {{
           ctx.beginPath();
           for (let i = 0; i < pts.length; i++) {{
@@ -687,23 +719,23 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
           }}
           ctx.closePath();
           ctx.strokeStyle = cont.hasEpicenter ? 
-            `rgba(251, 146, 60, ${{0.15 - idx * 0.03}})` : 
-            `rgba(56, 189, 248, ${{0.12 - idx * 0.02}})`;
+            `rgba(244, 63, 94, ${{0.14 - idx * 0.03}})` : 
+            `rgba(203, 213, 225, ${{0.4 - idx * 0.1}})`;
           ctx.lineWidth = 1 / scale;
           ctx.stroke();
         }});
 
-        // Topographic Continent Label
+        // Continent Name
         if (scale < 1.4) {{
-          ctx.fillStyle = cont.hasEpicenter ? "rgba(254, 205, 211, 0.9)" : "rgba(148, 163, 184, 0.75)";
-          ctx.font = `700 ${{Math.max(14, 22)}}px ui-sans-serif, system-ui`;
+          ctx.fillStyle = cont.hasEpicenter ? "#be123c" : "#334155";
+          ctx.font = `700 ${{Math.max(13, 19)}}px -apple-system, system-ui, sans-serif`;
           ctx.textAlign = "center";
-          ctx.fillText(`⯎ ${{modName.toUpperCase()}}`, cont.cx, cont.cy - cont.baseRadius - 16);
+          ctx.fillText(`⯎ ${{modName.toUpperCase()}}`, cont.cx, cont.cy - cont.baseRadius - 14);
         }}
       }});
 
       // ==========================================
-      // 2. DEPENDENCY HIGHWAYS & PHOTON STREAMS
+      // 2. DEPENDENCY RIVERS & SUBTLE PULSES
       // ==========================================
       DATA.links.forEach(l => {{
         const src = nodeCoords.get(l.source);
@@ -713,33 +745,29 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
         const srcNode = DATA.nodes.find(n => n.id === l.source);
         const isEpicenterEdge = srcNode && srcNode.tier === 0;
 
-        // Smooth curved energy river
         const midX = (src.x + tgt.x) / 2 - (tgt.y - src.y) * 0.15;
         const midY = (src.y + tgt.y) / 2 + (tgt.x - src.x) * 0.15;
 
-        ctx.strokeStyle = isEpicenterEdge ? "rgba(244, 63, 94, 0.35)" : "rgba(56, 189, 248, 0.18)";
+        ctx.strokeStyle = isEpicenterEdge ? "rgba(244, 63, 94, 0.35)" : "rgba(203, 213, 225, 0.7)";
         ctx.lineWidth = Math.max(1, 1.4 / scale);
         ctx.beginPath();
         ctx.moveTo(src.x, src.y);
         ctx.quadraticCurveTo(midX, midY, tgt.x, tgt.y);
         ctx.stroke();
 
-        // Flowing energy photon
-        const t = (animTime * 0.6) % 1.0;
+        // Flowing energy particle
+        const t = (animTime * 0.5) % 1.0;
         const px = (1 - t) ** 2 * src.x + 2 * (1 - t) * t * midX + t ** 2 * tgt.x;
         const py = (1 - t) ** 2 * src.y + 2 * (1 - t) * t * midY + t ** 2 * tgt.y;
 
         ctx.beginPath();
-        ctx.arc(px, py, isEpicenterEdge ? 3.5 : 2.5, 0, Math.PI * 2);
-        ctx.fillStyle = isEpicenterEdge ? "#f43f5e" : "#38bdf8";
-        ctx.shadowColor = isEpicenterEdge ? "#f43f5e" : "#38bdf8";
-        ctx.shadowBlur = 8;
+        ctx.arc(px, py, isEpicenterEdge ? 3 : 2, 0, Math.PI * 2);
+        ctx.fillStyle = isEpicenterEdge ? "#e11d48" : "#0284c7";
         ctx.fill();
-        ctx.shadowBlur = 0;
       }});
 
       // ==========================================
-      // 3. SEISMIC BEACONS & SHOCKWAVE PULSES
+      // 3. SEISMIC BEACONS & CODE STRATA
       // ==========================================
       DATA.nodes.forEach(node => {{
         const pt = nodeCoords.get(node.id);
@@ -748,65 +776,70 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
         const isHovered = hoveredNode && hoveredNode.id === node.id;
         const isActive = activeNode && activeNode.id === node.id;
 
-        let beaconColor = "#38bdf8";
-        if (node.tier === 0) beaconColor = "#f43f5e"; // Epicenter Red
-        else if (node.tier === 1) beaconColor = "#fbbf24"; // Direct Ripple Amber
-        else if (node.tier === 2) beaconColor = "#fde047"; // Transitive Yellow
+        let beaconColor = "#0284c7"; // Clean Azure
+        if (node.tier === 0) beaconColor = "#e11d48"; // Epicenter Rose
+        else if (node.tier === 1) beaconColor = "#ea580c"; // Ripple Tangerine
+        else if (node.tier === 2) beaconColor = "#d97706"; // Transitive Amber
 
-        // A. Seismic Epicenter Expanding Shockwave Rings
+        // Shockwave rings for Epicenter
         if (node.tier === 0) {{
           for (let w = 0; w < 3; w++) {{
-            const waveProgress = ((animTime * 0.8 + w * 0.33) % 1.0);
-            const waveRadius = 15 + waveProgress * 95;
-            const waveOpacity = (1.0 - waveProgress) * 0.7;
+            const waveProgress = ((animTime * 0.7 + w * 0.33) % 1.0);
+            const waveRadius = 12 + waveProgress * 85;
+            const waveOpacity = (1.0 - waveProgress) * 0.45;
 
             ctx.beginPath();
             ctx.arc(pt.x, pt.y, waveRadius, 0, Math.PI * 2);
-            ctx.strokeStyle = `rgba(244, 63, 94, ${{waveOpacity}})`;
-            ctx.lineWidth = 2 / scale;
+            ctx.strokeStyle = `rgba(225, 29, 72, ${{waveOpacity}})`;
+            ctx.lineWidth = 1.8 / scale;
             ctx.stroke();
           }}
         }}
 
-        // B. Ground Code Strata (Scale > 1.8: No rectangles, pure etched code!)
+        // Ground Code Level (Scale >= 1.8)
         if (scale >= 1.8) {{
           ctx.save();
           ctx.translate(pt.x, pt.y);
 
-          // Topographic Strata Boundary (soft glowing halo)
-          ctx.fillStyle = "rgba(4, 8, 18, 0.92)";
+          // Code Container (Clean white card)
+          ctx.fillStyle = "#ffffff";
+          ctx.shadowColor = "rgba(15, 23, 42, 0.08)";
+          ctx.shadowBlur = 18;
+          ctx.shadowOffsetY = 4;
           ctx.beginPath();
           ctx.arc(0, 0, 160, 0, Math.PI * 2);
           ctx.fill();
-          ctx.strokeStyle = isHovered || isActive ? "#ffffff" : beaconColor;
+          ctx.shadowBlur = 0;
+
+          ctx.strokeStyle = isHovered || isActive ? "#0f172a" : (node.tier === 0 ? "#fda4af" : "#e2e8f0");
           ctx.lineWidth = 1.5 / scale;
           ctx.stroke();
 
-          // Filename Inscription
-          ctx.fillStyle = "#ffffff";
-          ctx.font = "bold 13px ui-sans-serif, system-ui";
+          // Title
+          ctx.fillStyle = "#0f172a";
+          ctx.font = "bold 13px -apple-system, sans-serif";
           ctx.textAlign = "center";
           ctx.fillText(node.name, 0, -125);
 
-          // In-Situ Code Lines
-          ctx.font = "10px monospace";
+          // Lines
+          ctx.font = "10px SFMono-Regular, Consolas, monospace";
           ctx.textAlign = "left";
           const lines = node.diffLines && node.diffLines.length ? node.diffLines.slice(0, 11) : (node.codeLines || []).slice(0, 11);
           let ly = -95;
 
           lines.forEach(l => {{
             if (l.type === "add") {{
-              ctx.fillStyle = "rgba(52, 211, 153, 0.18)";
+              ctx.fillStyle = "#ecfdf5";
               ctx.fillRect(-135, ly - 9, 270, 14);
-              ctx.fillStyle = "#34d399";
+              ctx.fillStyle = "#047857";
               ctx.fillText(`+ ${{l.text.slice(0, 36)}}`, -130, ly + 2);
             }} else if (l.type === "del") {{
-              ctx.fillStyle = "rgba(248, 113, 113, 0.18)";
+              ctx.fillStyle = "#fff1f2";
               ctx.fillRect(-135, ly - 9, 270, 14);
-              ctx.fillStyle = "#f87171";
+              ctx.fillStyle = "#be123c";
               ctx.fillText(`- ${{l.text.slice(0, 36)}}`, -130, ly + 2);
             }} else {{
-              ctx.fillStyle = "#94a3b8";
+              ctx.fillStyle = "#475569";
               const txt = l.text !== undefined ? l.text : l;
               ctx.fillText(`  ${{String(txt).slice(0, 36)}}`, -130, ly + 2);
             }}
@@ -815,87 +848,72 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
 
           ctx.restore();
         }}
-        // C. Celestial Beacon Orb (Scale < 1.8)
+        // Beacon Node (Scale < 1.8)
         else {{
           ctx.beginPath();
-          ctx.arc(pt.x, pt.y, isHovered || isActive ? 14 : 9, 0, Math.PI * 2);
+          ctx.arc(pt.x, pt.y, isHovered || isActive ? 12 : 8, 0, Math.PI * 2);
           ctx.fillStyle = beaconColor;
-          ctx.shadowColor = beaconColor;
-          ctx.shadowBlur = isHovered || isActive ? 16 : 8;
           ctx.fill();
-          ctx.shadowBlur = 0;
 
-          // Ambient Filename Label
           if (scale > 0.55 || isHovered || isActive) {{
-            ctx.fillStyle = isHovered || isActive ? "#ffffff" : "rgba(241, 245, 249, 0.85)";
-            ctx.font = isHovered || isActive ? "bold 12px ui-sans-serif" : "11px ui-sans-serif";
+            ctx.fillStyle = isHovered || isActive ? "#0f172a" : "#475569";
+            ctx.font = isHovered || isActive ? "600 12px -apple-system, sans-serif" : "11px -apple-system, sans-serif";
             ctx.textAlign = "center";
-            ctx.fillText(node.name, pt.x, pt.y + 20);
+            ctx.fillText(node.name, pt.x, pt.y + 19);
           }}
         }}
 
         // ==========================================
-        // 4. IN-SITU HUD TELEMETRY RETICLE (Zero Drawers!)
+        // 4. RETICLE TELEMETRY HALO (In-situ, Clean White Card)
         // ==========================================
         if (isHovered || isActive) {{
           ctx.save();
           ctx.translate(pt.x, pt.y);
 
           // Targeting Ring
-          ctx.strokeStyle = "#ffffff";
-          ctx.lineWidth = 1.5 / scale;
+          ctx.strokeStyle = "#0f172a";
+          ctx.lineWidth = 1.4 / scale;
           ctx.beginPath();
-          ctx.arc(0, 0, 24, 0, Math.PI * 2);
+          ctx.arc(0, 0, 20, 0, Math.PI * 2);
           ctx.stroke();
 
-          // Crosshairs
-          ctx.setLineDash([4 / scale, 4 / scale]);
+          // Floating Telemetry Box
+          const boxX = 30;
+          const boxY = -42;
+          ctx.fillStyle = "rgba(255, 255, 255, 0.98)";
+          ctx.strokeStyle = "#cbd5e1";
+          ctx.lineWidth = 1 / scale;
+          ctx.shadowColor = "rgba(15, 23, 42, 0.08)";
+          ctx.shadowBlur = 14;
           ctx.beginPath();
-          ctx.moveTo(-32, 0); ctx.lineTo(32, 0);
-          ctx.moveTo(0, -32); ctx.lineTo(0, 32);
-          ctx.stroke();
-          ctx.setLineDash([]);
-
-          // Floating Telemetry Halo
-          const boxX = 35;
-          const boxY = -45;
-          ctx.fillStyle = "rgba(10, 15, 29, 0.9)";
-          ctx.strokeStyle = beaconColor;
-          ctx.lineWidth = 1.2 / scale;
-          ctx.beginPath();
-          ctx.roundRect(boxX, boxY, 150, 60, 8);
+          ctx.roundRect(boxX, boxY, 155, 58, 8);
           ctx.fill();
+          ctx.shadowBlur = 0;
           ctx.stroke();
 
-          // HUD Leader Line
-          ctx.beginPath();
-          ctx.moveTo(18, -18);
-          ctx.lineTo(boxX, boxY + 20);
-          ctx.stroke();
-
-          // Telemetry Data
-          ctx.fillStyle = "#ffffff";
-          ctx.font = "bold 11px ui-sans-serif";
+          // Title
+          ctx.fillStyle = "#0f172a";
+          ctx.font = "bold 11px -apple-system, sans-serif";
           ctx.textAlign = "left";
           ctx.fillText(node.name, boxX + 10, boxY + 18);
 
-          ctx.font = "10px monospace";
-          ctx.fillStyle = node.tier === 0 ? "#f43f5e" : (node.tier === 1 ? "#fbbf24" : "#38bdf8");
+          // Tier badge
+          ctx.font = "10px -apple-system, sans-serif";
+          ctx.fillStyle = node.tier === 0 ? "#e11d48" : (node.tier === 1 ? "#ea580c" : "#0284c7");
           const tierLabel = node.tier === 0 ? "⚡ EPICENTER" : (node.tier === 1 ? "▲ RIPPLE ZONE" : "✓ SAFE NODE");
-          ctx.fillText(tierLabel, boxX + 10, boxY + 34);
+          ctx.fillText(tierLabel, boxX + 10, boxY + 33);
 
-          ctx.fillStyle = "#94a3b8";
+          // Stats
+          ctx.fillStyle = "#64748b";
           let statText = "";
           if (node.added > 0 || node.deleted > 0) {{
-            statText = `+${{node.added}} -${{node.deleted}} Git Diff | ${{node.inbound.length}} callers`;
+            statText = `+${{node.added}} -${{node.deleted}} Diff | ${{node.inbound.length}} callers`;
           }} else if (node.tier === 0) {{
             statText = `Active Session Edit | ${{node.inbound.length}} callers`;
-          }} else if (node.tier === 1) {{
-            statText = `Imports Epicenter | ${{node.inbound.length}} callers`;
           }} else {{
             statText = `Clean Bedrock | ${{node.inbound.length}} callers`;
           }}
-          ctx.fillText(statText, boxX + 10, boxY + 48);
+          ctx.fillText(statText, boxX + 10, boxY + 47);
 
           ctx.restore();
         }}
@@ -953,7 +971,6 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
       }}
     }}
 
-    // Start 60fps Loop
     requestAnimationFrame(draw);
     if (DATA.steps.length) setStep(0);
   </script>
