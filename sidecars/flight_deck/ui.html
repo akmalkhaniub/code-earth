@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Earth - ReplitProjects</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    body {
+      background: radial-gradient(circle at 50% 50%, #060913 0%, #010307 100%);
+      color: #f1f5f9;
+      font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+      margin: 0;
+      overflow: hidden;
+      user-select: none;
+    }
+    canvas {
+      display: block;
+      cursor: grab;
+    }
+    canvas:active {
+      cursor: grabbing;
+    }
+    .hud-glass {
+      background: rgba(10, 15, 29, 0.75);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(56, 189, 248, 0.15);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+    }
+    /* Custom scroll */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.3); border-radius: 4px; }
+  </style>
+</head>
+<body class="w-screen h-screen">
+
+  <!-- TOP MINIMALIST HUD (Planet Status & Altitude) -->
+  <header class="absolute top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
+    
+    <!-- Planetary Condition -->
+    <div class="hud-glass rounded-full px-5 py-2.5 flex items-center gap-4 pointer-events-auto">
+      <div class="flex items-center gap-2.5">
+        <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_10px_#34d399] animate-pulse"></span>
+        <span class="font-bold text-xs tracking-wider text-slate-100 uppercase">Code Earth</span>
+        <span class="text-slate-500 text-xs">/</span>
+        <span class="text-slate-300 text-xs font-mono">ReplitProjects</span>
+      </div>
+
+      <div class="h-4 w-px bg-slate-700/80"></div>
+
+      <!-- Seismic Blast Status -->
+      <div class="flex items-center gap-3.5 text-xs">
+        <div class="flex items-center gap-1.5" title="Direct Epicenter Edits">
+          <span class="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_0_8px_#f43f5e] animate-ping"></span>
+          <span class="font-bold text-rose-300" id="stat-epicenter">0</span>
+          <span class="text-slate-400 text-[11px]">Epicenter</span>
+        </div>
+        <div class="flex items-center gap-1.5" title="Direct Ripple Consumers">
+          <span class="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_6px_#fbbf24]"></span>
+          <span class="font-bold text-amber-300" id="stat-ripple">0</span>
+          <span class="text-slate-400 text-[11px]">Ripple</span>
+        </div>
+        <div class="flex items-center gap-1.5" title="Verified Safe Zones">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span class="font-bold text-emerald-300" id="stat-safe">0</span>
+          <span class="text-slate-400 text-[11px]">Safe</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Altitude Orbit Jumpers & Fullscreen -->
+    <div class="hud-glass rounded-full px-3 py-1.5 flex items-center gap-1 pointer-events-auto">
+      <button onclick="setAltitude(0.28)" class="px-3 py-1 hover:bg-sky-500/10 rounded-full text-slate-300 hover:text-sky-300 text-xs font-medium transition" title="Global Planet Orbit">
+        🛰️ Orbit
+      </button>
+      <button onclick="setAltitude(0.85)" class="px-3 py-1 hover:bg-sky-500/10 rounded-full text-slate-300 hover:text-sky-300 text-xs font-medium transition" title="Continent / Module">
+        🧭 Continent
+      </button>
+      <button onclick="setAltitude(2.8)" class="px-3 py-1 bg-sky-500/20 text-sky-300 border border-sky-500/30 rounded-full text-xs font-bold transition" title="Topographic Ground Code">
+        🔬 Code Strata
+      </button>
+      <button onclick="resetCamera()" class="p-1.5 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white text-xs ml-1" title="Reset Camera">
+        ↺
+      </button>
+      <button onclick="toggleFullScreen()" class="px-2.5 py-1 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 rounded-full text-xs font-semibold transition ml-1 flex items-center gap-1" title="Toggle Full Screen (F11)">
+        ⛶ Fullscreen
+      </button>
+    </div>
+  </header>
+
+  <!-- 100% FULLSCREEN TOPOGRAPHIC CANVAS -->
+  <canvas id="earthCanvas" class="w-full h-full"></canvas>
+
+  <!-- BOTTOM AMBIENT FLIGHT RECORDER (Non-Intrusive) -->
+  <footer class="absolute bottom-4 left-6 right-6 z-20 flex flex-col gap-2 pointer-events-none items-center">
+    
+    <!-- In-flight Thought Bubble -->
+    <div id="thoughtPill" class="hud-glass rounded-full px-5 py-2 max-w-xl w-full flex items-center justify-between gap-3 pointer-events-auto shadow-2xl transition-all duration-300">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <span id="flightStep" class="px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 font-mono font-bold text-[10px]">Step 1</span>
+        <p id="flightThought" class="text-slate-300 text-xs truncate">Exploring global topographic architecture...</p>
+      </div>
+      <span id="flightAction" class="text-[9px] font-mono px-2 py-0.5 rounded bg-slate-800/80 text-sky-300 uppercase tracking-widest">IDLE</span>
+    </div>
+
+    <!-- Minimalist Scrubber Ribbon -->
+    <div class="hud-glass rounded-full px-4 py-2 w-full max-w-2xl flex items-center gap-3 pointer-events-auto">
+      <button id="btnPlay" onclick="togglePlay()" class="w-7 h-7 rounded-full bg-sky-500/20 hover:bg-sky-500/40 text-sky-300 border border-sky-500/30 flex items-center justify-center font-bold text-xs transition">
+        ▶
+      </button>
+      <span class="text-slate-400 font-mono text-[11px] min-w-[50px]" id="stepCount">0 / 0</span>
+      <div class="flex-1 relative flex items-center">
+        <input id="timeline" type="range" min="0" max="1" value="0" step="1" 
+               class="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-400 focus:outline-none">
+      </div>
+      <button onclick="stepDelta(-1)" class="p-1 hover:text-white text-slate-400 text-xs">◀</button>
+      <button onclick="stepDelta(1)" class="p-1 hover:text-white text-slate-400 text-xs">▶</button>
+    </div>
+  </footer>
+
+  <script>
+    const DATA = {"repo": "ReplitProjects", "nodes": [{"id": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/antigravity_guide/SKILL.md\"", "name": "SKILL.md\"", "dir": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/antigravity_guide", "module": "\"C:", "tier": 3, "added": 0, "deleted": 0, "status": "Clean", "diffLines": [], "symbols": [], "codeLines": [], "inbound": [], "outbound": [], "events": [{"step": 3, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/antigravity_guide/SKILL.md\"", "thought": ""}]}, {"id": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/README.md\"", "name": "README.md\"", "dir": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck", "module": "\"C:", "tier": 0, "added": 0, "deleted": 0, "status": "Clean", "diffLines": [], "symbols": [], "codeLines": [], "inbound": [], "outbound": [], "events": [{"step": 18, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/README.md\"", "thought": ""}]}, {"id": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/antigravity_guide/references/cli.md\"", "name": "cli.md\"", "dir": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/antigravity_guide/references", "module": "\"C:", "tier": 3, "added": 0, "deleted": 0, "status": "Clean", "diffLines": [], "symbols": [], "codeLines": [], "inbound": [], "outbound": [], "events": [{"step": 8, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/antigravity_guide/references/cli.md\"", "thought": ""}]}, {"id": "\"C:/Users/Silicon computer/.gemini/antigravity/brain/082695d1-d5f6-4479-b129-ed1b26c663f9/agent_blast_radius_blueprint.md\"", "name": "agent_blast_radius_blueprint.md\"", "dir": "\"C:/Users/Silicon computer/.gemini/antigravity/brain/082695d1-d5f6-4479-b129-ed1b26c663f9", "module": "\"C:", "tier": 0, "added": 0, "deleted": 0, "status": "Clean", "diffLines": [], "symbols": [], "codeLines": [], "inbound": [], "outbound": [], "events": [{"step": 12, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/antigravity/brain/082695d1-d5f6-4479-b129-ed1b26c663f9/agent_blast_radius_blueprint.md\"", "thought": "Initial plan focuses on a holistic, pre-build approach. User feedback requests augmentation of the plan with test result"}]}, {"id": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/antigravity_guide/references/app.md\"", "name": "app.md\"", "dir": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/antigravity_guide/references", "module": "\"C:", "tier": 3, "added": 0, "deleted": 0, "status": "Clean", "diffLines": [], "symbols": [], "codeLines": [], "inbound": [], "outbound": [], "events": [{"step": 5, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/antigravity_guide/references/app.md\"", "thought": ""}]}, {"id": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/antigravity_guide/references/ide.md\"", "name": "ide.md\"", "dir": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/antigravity_guide/references", "module": "\"C:", "tier": 3, "added": 0, "deleted": 0, "status": "Clean", "diffLines": [], "symbols": [], "codeLines": [], "inbound": [], "outbound": [], "events": [{"step": 4, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/antigravity_guide/references/ide.md\"", "thought": ""}]}, {"id": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/ui-plugin-navigation/SKILL.md\"", "name": "SKILL.md\"", "dir": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/ui-plugin-navigation", "module": "\"C:", "tier": 3, "added": 0, "deleted": 0, "status": "Clean", "diffLines": [], "symbols": [], "codeLines": [], "inbound": [], "outbound": [], "events": [{"step": 20, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/ui-plugin-navigation/SKILL.md\"", "thought": "The user's feedback indicates a preference for a sidepanel display of the plugin instead of the chat interface. Reviewin"}]}, {"id": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/agy-customizations/SKILL.md\"", "name": "SKILL.md\"", "dir": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/agy-customizations", "module": "\"C:", "tier": 3, "added": 0, "deleted": 0, "status": "Clean", "diffLines": [], "symbols": [], "codeLines": [], "inbound": [], "outbound": [], "events": [{"step": 2, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/agy-customizations/SKILL.md\"", "thought": ""}]}, {"id": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/agy-customizations/docs/plugins.md\"", "name": "plugins.md\"", "dir": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/agy-customizations/docs", "module": "\"C:", "tier": 3, "added": 0, "deleted": 0, "status": "Clean", "diffLines": [], "symbols": [], "codeLines": [], "inbound": [], "outbound": [], "events": [{"step": 6, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/agy-customizations/docs/plugins.md\"", "thought": ""}, {"step": 7, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/agy-customizations/docs/plugins.md\"", "thought": ""}]}, {"id": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/plugin.json\"", "name": "plugin.json\"", "dir": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck", "module": "\"C:", "tier": 0, "added": 0, "deleted": 0, "status": "Clean", "diffLines": [], "symbols": [], "codeLines": [], "inbound": [], "outbound": [], "events": [{"step": 14, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/plugin.json\"", "thought": "I'm thinking through how to approach this."}]}, {"id": "\"C:/Users/Silicon computer/.gemini/config/plugins/qodo/skills/qodo-review/SKILL.md\"", "name": "SKILL.md\"", "dir": "\"C:/Users/Silicon computer/.gemini/config/plugins/qodo/skills/qodo-review", "module": "\"C:", "tier": 3, "added": 0, "deleted": 0, "status": "Clean", "diffLines": [], "symbols": [], "codeLines": [], "inbound": [], "outbound": [], "events": [{"step": 10, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/qodo/skills/qodo-review/SKILL.md\"", "thought": ""}]}, {"id": "\"C:/Users/Silicon computer/.gemini/config/plugins/science/sidecars/biomolecular_structure_viewer/sidecar.json\"", "name": "sidecar.json\"", "dir": "\"C:/Users/Silicon computer/.gemini/config/plugins/science/sidecars/biomolecular_structure_viewer", "module": "\"C:", "tier": 3, "added": 0, "deleted": 0, "status": "Clean", "diffLines": [], "symbols": [], "codeLines": [], "inbound": [], "outbound": [], "events": [{"step": 24, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/science/sidecars/biomolecular_structure_viewer/sidecar.json\"", "thought": ""}]}, {"id": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/sidecars/flight_deck/sidecar.json\"", "name": "sidecar.json\"", "dir": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/sidecars/flight_deck", "module": "\"C:", "tier": 0, "added": 0, "deleted": 0, "status": "Clean", "diffLines": [], "symbols": [], "codeLines": [], "inbound": [], "outbound": [], "events": [{"step": 26, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/sidecars/flight_deck/sidecar.json\"", "thought": "Creating a sidecar UI panel requires configuring a plugin. The plugin configuration file structure is being examined to "}]}, {"id": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/generative_ui/SKILL.md\"", "name": "SKILL.md\"", "dir": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/generative_ui", "module": "\"C:", "tier": 3, "added": 0, "deleted": 0, "status": "Clean", "diffLines": [], "symbols": [], "codeLines": [], "inbound": [], "outbound": [], "events": [{"step": 11, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/generative_ui/SKILL.md\"", "thought": "Initial hypothesis: user desires a visual representation of code changes, going beyond simple textual diffs. The goal is"}]}, {"id": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/rules/AGENTS.md\"", "name": "AGENTS.md\"", "dir": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/rules", "module": "\"C:", "tier": 0, "added": 0, "deleted": 0, "status": "Clean", "diffLines": [], "symbols": [], "codeLines": [], "inbound": [], "outbound": [], "events": [{"step": 19, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/rules/AGENTS.md\"", "thought": ""}]}, {"id": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/SKILL.md\"", "name": "SKILL.md\"", "dir": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck", "module": "\"C:", "tier": 0, "added": 0, "deleted": 0, "status": "Clean", "diffLines": [], "symbols": [], "codeLines": [], "inbound": [], "outbound": [], "events": [{"step": 16, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/SKILL.md\"", "thought": "The skill definition outlines the purpose of the interactive visualization tool, detailing its function in displaying ag"}]}, {"id": "\"C:/Users/Silicon computer/.gemini/config/plugins/coderabbit/skills/code-review/SKILL.md\"", "name": "SKILL.md\"", "dir": "\"C:/Users/Silicon computer/.gemini/config/plugins/coderabbit/skills/code-review", "module": "\"C:", "tier": 3, "added": 0, "deleted": 0, "status": "Clean", "diffLines": [], "symbols": [], "codeLines": [], "inbound": [], "outbound": [], "events": [{"step": 9, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/coderabbit/skills/code-review/SKILL.md\"", "thought": "Initial analysis suggests the user seeks guidance on utilizing installed plugins, specifically Qodo and CodeRabbit. Revi"}]}, {"id": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "name": "flight_deck_engine.py\"", "dir": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts", "module": "\"C:", "tier": 0, "added": 0, "deleted": 0, "status": "Clean", "diffLines": [], "symbols": [], "codeLines": [], "inbound": [], "outbound": [], "events": [{"step": 15, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "thought": "The existence of the transcript file is confirmed. Now, creating the engine script, the next step involves carefully con"}, {"step": 25, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "thought": "The `sidecar.json` configuration reveals the presence of a web UI component, named \"Agent Flight Deck.\" The configuratio"}, {"step": 29, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "thought": "I'm thinking through how to approach this."}, {"step": 32, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "thought": "The request is about achieving a true full-screen experience for an interactive preview. There are several potential app"}, {"step": 33, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "thought": ""}, {"step": 35, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "thought": ""}, {"step": 39, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "thought": "The error indicates the current directory is not a Git repository, causing `git status` and `git diff` to fail. This exp"}, {"step": 40, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "thought": ""}, {"step": 41, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "thought": ""}, {"step": 42, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "thought": ""}, {"step": 43, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "thought": ""}, {"step": 44, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "thought": "The code snippet clearly renders the node's line changes and caller count. The issue arises when both added and deleted "}, {"step": 45, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "thought": ""}, {"step": 46, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "thought": ""}]}, {"id": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/plugin/SKILL.md\"", "name": "SKILL.md\"", "dir": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/plugin", "module": "\"C:", "tier": 3, "added": 0, "deleted": 0, "status": "Clean", "diffLines": [], "symbols": [], "codeLines": [], "inbound": [], "outbound": [], "events": [{"step": 1, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/plugin/SKILL.md\"", "thought": "Initial hypothesis: user needs guidance on extending the core functionality of the specified coding agent environment wi"}]}], "links": [], "modules": {"\"C:": ["\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/antigravity_guide/SKILL.md\"", "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/README.md\"", "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/antigravity_guide/references/cli.md\"", "\"C:/Users/Silicon computer/.gemini/antigravity/brain/082695d1-d5f6-4479-b129-ed1b26c663f9/agent_blast_radius_blueprint.md\"", "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/antigravity_guide/references/app.md\"", "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/antigravity_guide/references/ide.md\"", "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/ui-plugin-navigation/SKILL.md\"", "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/agy-customizations/SKILL.md\"", "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/agy-customizations/docs/plugins.md\"", "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/plugin.json\"", "\"C:/Users/Silicon computer/.gemini/config/plugins/qodo/skills/qodo-review/SKILL.md\"", "\"C:/Users/Silicon computer/.gemini/config/plugins/science/sidecars/biomolecular_structure_viewer/sidecar.json\"", "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/sidecars/flight_deck/sidecar.json\"", "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/generative_ui/SKILL.md\"", "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/rules/AGENTS.md\"", "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/SKILL.md\"", "\"C:/Users/Silicon computer/.gemini/config/plugins/coderabbit/skills/code-review/SKILL.md\"", "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/plugin/SKILL.md\""]}, "steps": [{"step": 1, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/plugin/SKILL.md\"", "thought": "Initial hypothesis: user needs guidance on extending the core functionality of the specified coding agent environment wi"}, {"step": 2, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/agy-customizations/SKILL.md\"", "thought": ""}, {"step": 3, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/antigravity_guide/SKILL.md\"", "thought": ""}, {"step": 4, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/antigravity_guide/references/ide.md\"", "thought": ""}, {"step": 5, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/antigravity_guide/references/app.md\"", "thought": ""}, {"step": 6, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/agy-customizations/docs/plugins.md\"", "thought": ""}, {"step": 7, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/agy-customizations/docs/plugins.md\"", "thought": ""}, {"step": 8, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/antigravity_guide/references/cli.md\"", "thought": ""}, {"step": 9, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/coderabbit/skills/code-review/SKILL.md\"", "thought": "Initial analysis suggests the user seeks guidance on utilizing installed plugins, specifically Qodo and CodeRabbit. Revi"}, {"step": 10, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/qodo/skills/qodo-review/SKILL.md\"", "thought": ""}, {"step": 11, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/generative_ui/SKILL.md\"", "thought": "Initial hypothesis: user desires a visual representation of code changes, going beyond simple textual diffs. The goal is"}, {"step": 12, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/antigravity/brain/082695d1-d5f6-4479-b129-ed1b26c663f9/agent_blast_radius_blueprint.md\"", "thought": "Initial plan focuses on a holistic, pre-build approach. User feedback requests augmentation of the plan with test result"}, {"step": 13, "type": "command", "cmd": "\"Test-Path \\\"C:\\\\Users\\\\Silicon computer\\\\.gemini\\\\antigravity\\\\brain\\\\082695d1-d5f6-4479-b129-ed1b26c663f9\\\\.system_generated\\\\logs\\\\transcript.jsonl\\\"\"", "summary": "\"Check transcript path\"", "thought": "The user is interested in Python for dependency parsing, but seeks performance improvements. Considering Python's `ast` "}, {"step": 14, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/plugin.json\"", "thought": "I'm thinking through how to approach this."}, {"step": 15, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "thought": "The existence of the transcript file is confirmed. Now, creating the engine script, the next step involves carefully con"}, {"step": 16, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/SKILL.md\"", "thought": "The skill definition outlines the purpose of the interactive visualization tool, detailing its function in displaying ag"}, {"step": 17, "type": "command", "cmd": "\"python \\\"C:\\\\Users\\\\Silicon computer\\\\.gemini\\\\config\\\\plugins\\\\agent-flight-deck\\\\skills\\\\flight-deck\\\\scripts\\\\flight_deck_engine.py\\\" --workspace \\\"G:\\\\ReplitProjects\\\" --transcript \\\"C:\\\\Users\\\\Silicon computer\\\\.gemini\\\\antigravity\\\\brain\\\\082695d1-d5f6-4479-b129-ed1b26c663f9\\\\.system_generated\\\\logs\\\\transcript.jsonl\\\" --output \\\"C:\\\\Users\\\\Silicon computer\\\\.gemini\\\\antigravity\\\\brain\\\\082695d1-d5f6-4479-b129-ed1b26c663f9\\\\flight_deck.html\\\"\"", "summary": "\"Run Flight Deck Engine\"", "thought": "Attempting to execute the engine to generate the target HTML file within the artifact directory. Recording the workspace"}, {"step": 18, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/README.md\"", "thought": ""}, {"step": 19, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/rules/AGENTS.md\"", "thought": ""}, {"step": 20, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/antigravity/builtin/skills/ui-plugin-navigation/SKILL.md\"", "thought": "The user's feedback indicates a preference for a sidepanel display of the plugin instead of the chat interface. Reviewin"}, {"step": 21, "type": "command", "cmd": "\"Get-ChildItem -Path \\\"C:\\\\Users\\\\Silicon computer\\\\.gemini\\\\\\\" -Filter \\\"sidecar.json\\\" -Recurse -ErrorAction SilentlyContinue | Select-Object FullName\"", "summary": "\"Find existing sidecar.json files\"", "thought": "UI plugins leverage sidecars for auxiliary panels, specifically under a designated configuration directory with a JSON f"}, {"step": 22, "type": "command", "cmd": "\"Get-ChildItem -Path \\\"C:\\\\Users\\\\Silicon computer\\\\.gemini\\\\config\\\\plugins\\\\science\\\"\"", "summary": "\"List science plugin directory\"", "thought": ""}, {"step": 23, "type": "command", "cmd": "\"Get-ChildItem -Path \\\"C:\\\\Users\\\\Silicon computer\\\\.gemini\\\\config\\\\plugins\\\\science\\\\sidecars\\\" -Recurse | Select-Object FullName\"", "summary": "\"Inspect science sidecars\"", "thought": ""}, {"step": 24, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/science/sidecars/biomolecular_structure_viewer/sidecar.json\"", "thought": ""}, {"step": 25, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "thought": "The `sidecar.json` configuration reveals the presence of a web UI component, named \"Agent Flight Deck.\" The configuratio"}, {"step": 26, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/sidecars/flight_deck/sidecar.json\"", "thought": "Creating a sidecar UI panel requires configuring a plugin. The plugin configuration file structure is being examined to "}, {"step": 27, "type": "command", "cmd": "\"python \\\"C:\\\\Users\\\\Silicon computer\\\\.gemini\\\\config\\\\plugins\\\\agent-flight-deck\\\\skills\\\\flight-deck\\\\scripts\\\\flight_deck_engine.py\\\" --workspace \\\"G:\\\\ReplitProjects\\\" --transcript \\\"C:\\\\Users\\\\Silicon computer\\\\.gemini\\\\antigravity\\\\brain\\\\082695d1-d5f6-4479-b129-ed1b26c663f9\\\\.system_generated\\\\logs\\\\transcript.jsonl\\\" --output \\\"C:\\\\Users\\\\Silicon computer\\\\.gemini\\\\antigravity\\\\brain\\\\082695d1-d5f6-4479-b129-ed1b26c663f9\\\\flight_deck.html\\\"\"", "summary": "\"Generate Google Earth for Code Deck\"", "thought": ""}, {"step": 28, "type": "command", "cmd": "\"Copy-Item \\\"C:\\\\Users\\\\Silicon computer\\\\.gemini\\\\antigravity\\\\brain\\\\082695d1-d5f6-4479-b129-ed1b26c663f9\\\\flight_deck.html\\\" \\\"C:\\\\Users\\\\Silicon computer\\\\.gemini\\\\config\\\\plugins\\\\agent-flight-deck\\\\sidecars\\\\flight_deck\\\\ui.html\\\"\"", "summary": "\"Copy to sidecar UI\"", "thought": ""}, {"step": 29, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "thought": "I'm thinking through how to approach this."}, {"step": 30, "type": "command", "cmd": "\"python \\\"C:\\\\Users\\\\Silicon computer\\\\.gemini\\\\config\\\\plugins\\\\agent-flight-deck\\\\skills\\\\flight-deck\\\\scripts\\\\flight_deck_engine.py\\\" --workspace \\\"G:\\\\ReplitProjects\\\" --transcript \\\"C:\\\\Users\\\\Silicon computer\\\\.gemini\\\\antigravity\\\\brain\\\\082695d1-d5f6-4479-b129-ed1b26c663f9\\\\.system_generated\\\\logs\\\\transcript.jsonl\\\" --output \\\"C:\\\\Users\\\\Silicon computer\\\\.gemini\\\\antigravity\\\\brain\\\\082695d1-d5f6-4479-b129-ed1b26c663f9\\\\flight_deck.html\\\"\"", "summary": "\"Generate Code Earth Deck\"", "thought": ""}, {"step": 31, "type": "command", "cmd": "\"Copy-Item \\\"C:\\\\Users\\\\Silicon computer\\\\.gemini\\\\antigravity\\\\brain\\\\082695d1-d5f6-4479-b129-ed1b26c663f9\\\\flight_deck.html\\\" \\\"C:\\\\Users\\\\Silicon computer\\\\.gemini\\\\config\\\\plugins\\\\agent-flight-deck\\\\sidecars\\\\flight_deck\\\\ui.html\\\"\"", "summary": "\"Sync to sidecar UI\"", "thought": ""}, {"step": 32, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "thought": "The request is about achieving a true full-screen experience for an interactive preview. There are several potential app"}, {"step": 33, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "thought": ""}, {"step": 34, "type": "command", "cmd": "\"python \\\"C:\\\\Users\\\\Silicon computer\\\\.gemini\\\\config\\\\plugins\\\\agent-flight-deck\\\\skills\\\\flight-deck\\\\scripts\\\\flight_deck_engine.py\\\" --workspace \\\"G:\\\\ReplitProjects\\\" --transcript \\\"C:\\\\Users\\\\Silicon computer\\\\.gemini\\\\antigravity\\\\brain\\\\082695d1-d5f6-4479-b129-ed1b26c663f9\\\\.system_generated\\\\logs\\\\transcript.jsonl\\\" --output \\\"C:\\\\Users\\\\Silicon computer\\\\.gemini\\\\antigravity\\\\brain\\\\082695d1-d5f6-4479-b129-ed1b26c663f9\\\\flight_deck.html\\\"\"", "summary": "\"Regenerate Code Earth with Fullscreen\"", "thought": ""}, {"step": 35, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "thought": ""}, {"step": 36, "type": "command", "cmd": "\"python \\\"C:\\\\Users\\\\Silicon computer\\\\.gemini\\\\config\\\\plugins\\\\agent-flight-deck\\\\skills\\\\flight-deck\\\\scripts\\\\flight_deck_engine.py\\\" --workspace \\\"G:\\\\ReplitProjects\\\" --transcript \\\"C:\\\\Users\\\\Silicon computer\\\\.gemini\\\\antigravity\\\\brain\\\\082695d1-d5f6-4479-b129-ed1b26c663f9\\\\.system_generated\\\\logs\\\\transcript.jsonl\\\" --output \\\"C:\\\\Users\\\\Silicon computer\\\\.gemini\\\\antigravity\\\\brain\\\\082695d1-d5f6-4479-b129-ed1b26c663f9\\\\flight_deck.html\\\"\"", "summary": "\"Run Code Earth Engine with Fullscreen\"", "thought": ""}, {"step": 37, "type": "command", "cmd": "\"Copy-Item \\\"C:\\\\Users\\\\Silicon computer\\\\.gemini\\\\antigravity\\\\brain\\\\082695d1-d5f6-4479-b129-ed1b26c663f9\\\\flight_deck.html\\\" \\\"C:\\\\Users\\\\Silicon computer\\\\.gemini\\\\config\\\\plugins\\\\agent-flight-deck\\\\sidecars\\\\flight_deck\\\\ui.html\\\"\"", "summary": "\"Copy updated HTML to sidecar\"", "thought": ""}, {"step": 38, "type": "command", "cmd": "\"git -C \\\"G:\\\\ReplitProjects\\\" status --short\"", "summary": "\"Check git status in workspace\"", "thought": "Initial hypothesis: The `+0 -0` might indicate a lack of positive or negative values associated with those reddish circl"}, {"step": 39, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "thought": "The error indicates the current directory is not a Git repository, causing `git status` and `git diff` to fail. This exp"}, {"step": 40, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "thought": ""}, {"step": 41, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "thought": ""}, {"step": 42, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "thought": ""}, {"step": 43, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "thought": ""}, {"step": 44, "type": "read", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "thought": "The code snippet clearly renders the node's line changes and caller count. The issue arises when both added and deleted "}, {"step": 45, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "thought": ""}, {"step": 46, "type": "edit", "file": "\"C:/Users/Silicon computer/.gemini/config/plugins/agent-flight-deck/skills/flight-deck/scripts/flight_deck_engine.py\"", "thought": ""}, {"step": 47, "type": "command", "cmd": "\"python \\\"C:\\\\Users\\\\Silicon computer\\\\.gemini\\\\config\\\\plugins\\\\agent-flight-deck\\\\skills\\\\flight-deck\\\\scripts\\\\flight_deck_engine.py\\\" --workspace \\\"G:\\\\ReplitProjects\\\" --transcript \\\"C:\\\\Users\\\\Silicon computer\\\\.gemini\\\\antigravity\\\\brain\\\\082695d1-d5f6-4479-b129-ed1b26c663f9\\\\.system_generated\\\\logs\\\\transcript.jsonl\\\" --output \\\"C:\\\\Users\\\\Silicon computer\\\\.gemini\\\\antigravity\\\\brain\\\\082695d1-d5f6-4479-b129-ed1b26c663f9\\\\flight_deck.html\\\"\"", "summary": "\"Re-generate Code Earth\"", "thought": ""}], "testRuns": [{"step": 13, "cmd": "\"Test-Path \\\"C:\\\\Users\\\\Silicon computer\\\\.gemini\\\\antigravity\\\\brain\\\\082695d1-d5f6-4479-b129-ed1b26c663f9\\\\.system_generated\\\\logs\\\\transcript.jsonl\\\"\"", "passed": true}]};
+
+    const canvas = document.getElementById("earthCanvas");
+    const ctx = canvas.getContext("2d");
+    let width = (canvas.width = window.innerWidth);
+    let height = (canvas.height = window.innerHeight);
+
+    window.addEventListener("resize", () => {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    });
+
+    // Camera State
+    let scale = 0.32;
+    let panX = width / 2;
+    let panY = height / 2;
+    let isDragging = false;
+    let startX = 0, startY = 0;
+    let hoveredNode = null;
+    let activeNode = null;
+
+    // Timeline State
+    let currentStepIdx = 0;
+    let isPlaying = false;
+    let playInterval = null;
+
+    // Stats
+    const epCount = DATA.nodes.filter(n => n.tier === 0).length;
+    const ripCount = DATA.nodes.filter(n => n.tier === 1 || n.tier === 2).length;
+    const safeCount = DATA.nodes.filter(n => n.tier >= 3).length;
+    document.getElementById("stat-epicenter").textContent = epCount;
+    document.getElementById("stat-ripple").textContent = ripCount;
+    document.getElementById("stat-safe").textContent = safeCount;
+
+    // Topographic Continents Layout
+    const moduleList = Object.keys(DATA.modules);
+    const continentLayout = new Map();
+    const nodeCoords = new Map();
+
+    const cols = Math.ceil(Math.sqrt(moduleList.length || 1));
+    const continentSpacingX = 950;
+    const continentSpacingY = 800;
+
+    // Generate organic coastline polygons with harmonic noise
+    moduleList.forEach((modName, mi) => {
+      const col = mi % cols;
+      const row = Math.floor(mi / cols);
+      const cx = (col - cols / 2 + 0.5) * continentSpacingX;
+      const cy = (row - Math.ceil(moduleList.length / cols) / 2 + 0.5) * continentSpacingY;
+
+      const files = DATA.modules[modName];
+      const baseRadius = Math.max(220, Math.sqrt(files.length) * 125);
+
+      // Create organic contour vertices
+      const numPoints = 32;
+      const coastlinePoints = [];
+      for (let i = 0; i < numPoints; i++) {
+        const theta = (i / numPoints) * Math.PI * 2;
+        // Harmonic organic perturbation
+        const rNoise = baseRadius * (1.0 + 0.14 * Math.sin(theta * 3 + mi) + 0.08 * Math.cos(theta * 5 - mi * 2));
+        coastlinePoints.push({
+          x: cx + Math.cos(theta) * rNoise,
+          y: cy + Math.sin(theta) * rNoise
+        });
+      }
+
+      continentLayout.set(modName, {
+        cx, cy, baseRadius, points: coastlinePoints,
+        hasEpicenter: files.some(f => {
+          const n = DATA.nodes.find(node => node.id === f);
+          return n && n.tier === 0;
+        })
+      });
+
+      // Position file beacons within the continent
+      files.forEach((fpath, fi) => {
+        const angle = (fi / files.length) * Math.PI * 2 + (mi * 0.4);
+        const dist = Math.min(baseRadius - 70, (fi + 1) * 55);
+        nodeCoords.set(fpath, {
+          x: cx + Math.cos(angle) * dist,
+          y: cy + Math.sin(angle) * dist
+        });
+      });
+    });
+
+    // Animation Clock
+    let animTime = 0;
+
+    // Mouse & Zoom
+    canvas.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
+      const mouseX = e.clientX;
+      const mouseY = e.clientY;
+
+      const worldX = (mouseX - panX) / scale;
+      const worldY = (mouseY - panY) / scale;
+
+      scale = Math.min(Math.max(scale * zoomFactor, 0.12), 7.0);
+      panX = mouseX - worldX * scale;
+      panY = mouseY - worldY * scale;
+    });
+
+    canvas.addEventListener("mousedown", (e) => {
+      isDragging = true;
+      startX = e.clientX - panX;
+      startY = e.clientY - panY;
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (isDragging) {
+        panX = e.clientX - startX;
+        panY = e.clientY - startY;
+      } else {
+        // Hit test for beacons
+        const worldX = (e.clientX - panX) / scale;
+        const worldY = (e.clientY - panY) / scale;
+        let found = null;
+
+        for (const n of DATA.nodes) {
+          const pt = nodeCoords.get(n.id);
+          if (!pt) continue;
+          const distSq = (worldX - pt.x) ** 2 + (worldY - pt.y) ** 2;
+          const hitRadius = scale > 1.5 ? 90 : 25;
+          if (distSq <= hitRadius ** 2) {
+            found = n;
+            break;
+          }
+        }
+
+        hoveredNode = found;
+        canvas.style.cursor = hoveredNode ? "pointer" : (isDragging ? "grabbing" : "grab");
+      }
+    });
+
+    window.addEventListener("mouseup", () => {
+      isDragging = false;
+    });
+
+    canvas.addEventListener("click", () => {
+      if (hoveredNode) {
+        activeNode = activeNode === hoveredNode ? null : hoveredNode;
+      } else {
+        activeNode = null;
+      }
+    });
+
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          window.open(window.location.href, '_blank');
+        });
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+
+    function setAltitude(s) {
+      scale = s;
+    }
+
+    function resetCamera() {
+      scale = 0.32;
+      panX = width / 2;
+      panY = height / 2;
+      activeNode = null;
+    }
+
+    // MAIN RENDER LOOP (60fps)
+    function draw() {
+      animTime += 0.025;
+      ctx.clearRect(0, 0, width, height);
+
+      ctx.save();
+      ctx.translate(panX, panY);
+      ctx.scale(scale, scale);
+
+      // ==========================================
+      // 1. ORGANIC TECTONIC CONTINENTS & CONTOURS
+      // ==========================================
+      continentLayout.forEach((cont, modName) => {
+        const pts = cont.points;
+        if (!pts.length) return;
+
+        // Outer Oceanic Shelf Glow
+        const shelfGrad = ctx.createRadialGradient(cont.cx, cont.cy, cont.baseRadius * 0.3, cont.cx, cont.cy, cont.baseRadius * 1.3);
+        shelfGrad.addColorStop(0, cont.hasEpicenter ? "rgba(244, 63, 94, 0.12)" : "rgba(14, 165, 233, 0.08)");
+        shelfGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = shelfGrad;
+        ctx.beginPath();
+        ctx.arc(cont.cx, cont.cy, cont.baseRadius * 1.3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Organic Landmass Bedrock
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) {
+          const prev = pts[i - 1];
+          const curr = pts[i];
+          const mx = (prev.x + curr.x) / 2;
+          const my = (prev.y + curr.y) / 2;
+          ctx.quadraticCurveTo(prev.x, prev.y, mx, my);
+        }
+        ctx.closePath();
+        ctx.fillStyle = "rgba(10, 15, 29, 0.85)";
+        ctx.fill();
+
+        // Glowing Coastline
+        ctx.strokeStyle = cont.hasEpicenter ? "rgba(244, 63, 94, 0.6)" : "rgba(56, 189, 248, 0.4)";
+        ctx.lineWidth = 2 / scale;
+        ctx.shadowColor = cont.hasEpicenter ? "#f43f5e" : "#38bdf8";
+        ctx.shadowBlur = 12;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // Concentric Topographic Elevation Contours (Internal Strata)
+        [0.78, 0.55, 0.35].forEach((ratio, idx) => {
+          ctx.beginPath();
+          for (let i = 0; i < pts.length; i++) {
+            const p = pts[i];
+            const px = cont.cx + (p.x - cont.cx) * ratio;
+            const py = cont.cy + (p.y - cont.cy) * ratio;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+          ctx.strokeStyle = cont.hasEpicenter ? 
+            `rgba(251, 146, 60, ${0.15 - idx * 0.03})` : 
+            `rgba(56, 189, 248, ${0.12 - idx * 0.02})`;
+          ctx.lineWidth = 1 / scale;
+          ctx.stroke();
+        });
+
+        // Topographic Continent Label
+        if (scale < 1.4) {
+          ctx.fillStyle = cont.hasEpicenter ? "rgba(254, 205, 211, 0.9)" : "rgba(148, 163, 184, 0.75)";
+          ctx.font = `700 ${Math.max(14, 22)}px ui-sans-serif, system-ui`;
+          ctx.textAlign = "center";
+          ctx.fillText(`⯎ ${modName.toUpperCase()}`, cont.cx, cont.cy - cont.baseRadius - 16);
+        }
+      });
+
+      // ==========================================
+      // 2. DEPENDENCY HIGHWAYS & PHOTON STREAMS
+      // ==========================================
+      DATA.links.forEach(l => {
+        const src = nodeCoords.get(l.source);
+        const tgt = nodeCoords.get(l.target);
+        if (!src || !tgt) return;
+
+        const srcNode = DATA.nodes.find(n => n.id === l.source);
+        const isEpicenterEdge = srcNode && srcNode.tier === 0;
+
+        // Smooth curved energy river
+        const midX = (src.x + tgt.x) / 2 - (tgt.y - src.y) * 0.15;
+        const midY = (src.y + tgt.y) / 2 + (tgt.x - src.x) * 0.15;
+
+        ctx.strokeStyle = isEpicenterEdge ? "rgba(244, 63, 94, 0.35)" : "rgba(56, 189, 248, 0.18)";
+        ctx.lineWidth = Math.max(1, 1.4 / scale);
+        ctx.beginPath();
+        ctx.moveTo(src.x, src.y);
+        ctx.quadraticCurveTo(midX, midY, tgt.x, tgt.y);
+        ctx.stroke();
+
+        // Flowing energy photon
+        const t = (animTime * 0.6) % 1.0;
+        const px = (1 - t) ** 2 * src.x + 2 * (1 - t) * t * midX + t ** 2 * tgt.x;
+        const py = (1 - t) ** 2 * src.y + 2 * (1 - t) * t * midY + t ** 2 * tgt.y;
+
+        ctx.beginPath();
+        ctx.arc(px, py, isEpicenterEdge ? 3.5 : 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = isEpicenterEdge ? "#f43f5e" : "#38bdf8";
+        ctx.shadowColor = isEpicenterEdge ? "#f43f5e" : "#38bdf8";
+        ctx.shadowBlur = 8;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      });
+
+      // ==========================================
+      // 3. SEISMIC BEACONS & SHOCKWAVE PULSES
+      // ==========================================
+      DATA.nodes.forEach(node => {
+        const pt = nodeCoords.get(node.id);
+        if (!pt) return;
+
+        const isHovered = hoveredNode && hoveredNode.id === node.id;
+        const isActive = activeNode && activeNode.id === node.id;
+
+        let beaconColor = "#38bdf8";
+        if (node.tier === 0) beaconColor = "#f43f5e"; // Epicenter Red
+        else if (node.tier === 1) beaconColor = "#fbbf24"; // Direct Ripple Amber
+        else if (node.tier === 2) beaconColor = "#fde047"; // Transitive Yellow
+
+        // A. Seismic Epicenter Expanding Shockwave Rings
+        if (node.tier === 0) {
+          for (let w = 0; w < 3; w++) {
+            const waveProgress = ((animTime * 0.8 + w * 0.33) % 1.0);
+            const waveRadius = 15 + waveProgress * 95;
+            const waveOpacity = (1.0 - waveProgress) * 0.7;
+
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, waveRadius, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(244, 63, 94, ${waveOpacity})`;
+            ctx.lineWidth = 2 / scale;
+            ctx.stroke();
+          }
+        }
+
+        // B. Ground Code Strata (Scale > 1.8: No rectangles, pure etched code!)
+        if (scale >= 1.8) {
+          ctx.save();
+          ctx.translate(pt.x, pt.y);
+
+          // Topographic Strata Boundary (soft glowing halo)
+          ctx.fillStyle = "rgba(4, 8, 18, 0.92)";
+          ctx.beginPath();
+          ctx.arc(0, 0, 160, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = isHovered || isActive ? "#ffffff" : beaconColor;
+          ctx.lineWidth = 1.5 / scale;
+          ctx.stroke();
+
+          // Filename Inscription
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "bold 13px ui-sans-serif, system-ui";
+          ctx.textAlign = "center";
+          ctx.fillText(node.name, 0, -125);
+
+          // In-Situ Code Lines
+          ctx.font = "10px monospace";
+          ctx.textAlign = "left";
+          const lines = node.diffLines && node.diffLines.length ? node.diffLines.slice(0, 11) : (node.codeLines || []).slice(0, 11);
+          let ly = -95;
+
+          lines.forEach(l => {
+            if (l.type === "add") {
+              ctx.fillStyle = "rgba(52, 211, 153, 0.18)";
+              ctx.fillRect(-135, ly - 9, 270, 14);
+              ctx.fillStyle = "#34d399";
+              ctx.fillText(`+ ${l.text.slice(0, 36)}`, -130, ly + 2);
+            } else if (l.type === "del") {
+              ctx.fillStyle = "rgba(248, 113, 113, 0.18)";
+              ctx.fillRect(-135, ly - 9, 270, 14);
+              ctx.fillStyle = "#f87171";
+              ctx.fillText(`- ${l.text.slice(0, 36)}`, -130, ly + 2);
+            } else {
+              ctx.fillStyle = "#94a3b8";
+              const txt = l.text !== undefined ? l.text : l;
+              ctx.fillText(`  ${String(txt).slice(0, 36)}`, -130, ly + 2);
+            }
+            ly += 16;
+          });
+
+          ctx.restore();
+        }
+        // C. Celestial Beacon Orb (Scale < 1.8)
+        else {
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, isHovered || isActive ? 14 : 9, 0, Math.PI * 2);
+          ctx.fillStyle = beaconColor;
+          ctx.shadowColor = beaconColor;
+          ctx.shadowBlur = isHovered || isActive ? 16 : 8;
+          ctx.fill();
+          ctx.shadowBlur = 0;
+
+          // Ambient Filename Label
+          if (scale > 0.55 || isHovered || isActive) {
+            ctx.fillStyle = isHovered || isActive ? "#ffffff" : "rgba(241, 245, 249, 0.85)";
+            ctx.font = isHovered || isActive ? "bold 12px ui-sans-serif" : "11px ui-sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText(node.name, pt.x, pt.y + 20);
+          }
+        }
+
+        // ==========================================
+        // 4. IN-SITU HUD TELEMETRY RETICLE (Zero Drawers!)
+        // ==========================================
+        if (isHovered || isActive) {
+          ctx.save();
+          ctx.translate(pt.x, pt.y);
+
+          // Targeting Ring
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 1.5 / scale;
+          ctx.beginPath();
+          ctx.arc(0, 0, 24, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // Crosshairs
+          ctx.setLineDash([4 / scale, 4 / scale]);
+          ctx.beginPath();
+          ctx.moveTo(-32, 0); ctx.lineTo(32, 0);
+          ctx.moveTo(0, -32); ctx.lineTo(0, 32);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          // Floating Telemetry Halo
+          const boxX = 35;
+          const boxY = -45;
+          ctx.fillStyle = "rgba(10, 15, 29, 0.9)";
+          ctx.strokeStyle = beaconColor;
+          ctx.lineWidth = 1.2 / scale;
+          ctx.beginPath();
+          ctx.roundRect(boxX, boxY, 150, 60, 8);
+          ctx.fill();
+          ctx.stroke();
+
+          // HUD Leader Line
+          ctx.beginPath();
+          ctx.moveTo(18, -18);
+          ctx.lineTo(boxX, boxY + 20);
+          ctx.stroke();
+
+          // Telemetry Data
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "bold 11px ui-sans-serif";
+          ctx.textAlign = "left";
+          ctx.fillText(node.name, boxX + 10, boxY + 18);
+
+          ctx.font = "10px monospace";
+          ctx.fillStyle = node.tier === 0 ? "#f43f5e" : (node.tier === 1 ? "#fbbf24" : "#38bdf8");
+          const tierLabel = node.tier === 0 ? "⚡ EPICENTER" : (node.tier === 1 ? "▲ RIPPLE ZONE" : "✓ SAFE NODE");
+          ctx.fillText(tierLabel, boxX + 10, boxY + 34);
+
+          ctx.fillStyle = "#94a3b8";
+          let statText = "";
+          if (node.added > 0 || node.deleted > 0) {
+            statText = `+${node.added} -${node.deleted} Git Diff | ${node.inbound.length} callers`;
+          } else if (node.tier === 0) {
+            statText = `Active Session Edit | ${node.inbound.length} callers`;
+          } else if (node.tier === 1) {
+            statText = `Imports Epicenter | ${node.inbound.length} callers`;
+          } else {
+            statText = `Clean Bedrock | ${node.inbound.length} callers`;
+          }
+          ctx.fillText(statText, boxX + 10, boxY + 48);
+
+          ctx.restore();
+        }
+      });
+
+      ctx.restore();
+      requestAnimationFrame(draw);
+    }
+
+    // Timeline Scrubber
+    const timeline = document.getElementById("timeline");
+    const stepCount = document.getElementById("stepCount");
+    const flightThought = document.getElementById("flightThought");
+    const flightStep = document.getElementById("flightStep");
+    const flightAction = document.getElementById("flightAction");
+
+    timeline.max = Math.max(0, DATA.steps.length - 1);
+    stepCount.textContent = DATA.steps.length ? `1 / ${DATA.steps.length}` : "0 / 0";
+
+    function setStep(idx) {
+      if (!DATA.steps.length) return;
+      currentStepIdx = Math.max(0, Math.min(idx, DATA.steps.length - 1));
+      timeline.value = currentStepIdx;
+      stepCount.textContent = `${currentStepIdx + 1} / ${DATA.steps.length}`;
+
+      const st = DATA.steps[currentStepIdx];
+      if (st) {
+        flightStep.textContent = `Step ${st.step}`;
+        flightAction.textContent = st.type.toUpperCase();
+        flightThought.textContent = st.thought || (st.file ? `Targeted ${st.file}` : st.summary || "Agent working...");
+
+        if (st.file && nodeCoords.has(st.file)) {
+          const pt = nodeCoords.get(st.file);
+          panX = width / 2 - pt.x * scale;
+          panY = height / 2 - pt.y * scale;
+          const nodeObj = DATA.nodes.find(n => n.id === st.file);
+          if (nodeObj) activeNode = nodeObj;
+        }
+      }
+    }
+
+    timeline.addEventListener("input", (e) => setStep(parseInt(e.target.value, 10)));
+    function stepDelta(d) { setStep(currentStepIdx + d); }
+
+    function togglePlay() {
+      isPlaying = !isPlaying;
+      document.getElementById("btnPlay").textContent = isPlaying ? "⏸" : "▶";
+      if (isPlaying) {
+        playInterval = setInterval(() => {
+          if (currentStepIdx >= DATA.steps.length - 1) setStep(0);
+          else setStep(currentStepIdx + 1);
+        }, 1400);
+      } else {
+        clearInterval(playInterval);
+      }
+    }
+
+    // Start 60fps Loop
+    requestAnimationFrame(draw);
+    if (DATA.steps.length) setStep(0);
+  </script>
+</body>
+</html>

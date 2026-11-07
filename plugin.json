@@ -1,0 +1,13 @@
+{
+  "name": "code-earth",
+  "displayName": "Code Earth - Topographic Blast Radius & Flight Deck",
+  "version": "1.0.0",
+  "description": "Google Earth for Code: Visualizes codebases as organic digital planets with seismic blast-radius shockwaves, ambient HUD reticles, and infinite semantic zoom down to syntax-highlighted code strata.",
+  "author": "Akmal Khan",
+  "repository": "https://github.com/akmalkhaniub/code-earth",
+  "suggestedPrompts": [
+    "Open Code Earth to visualize repository architecture",
+    "Show blast radius and seismic shockwaves of recent edits",
+    "Launch agent flight deck"
+  ]
+}
