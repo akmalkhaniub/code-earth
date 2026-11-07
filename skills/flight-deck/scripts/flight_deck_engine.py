@@ -4,7 +4,9 @@ Code Earth - Planetary Topographic Semantic Zoom Engine
 Visualizes a codebase as a living, organic digital planet in a clean, modern light aesthetic:
 - Organic Tectonic Continents with topographic elevation contours (no rectangular boxes!)
 - Seismic Epicenters with animated shockwaves and blast radius particle highways
-- Responsive header that never clips on narrow screens
+- Responsive header with live zoom percentage and active altitude indicator
+- Interactive Radar / Minimap to never lose orientation
+- Clamped camera bounds and "Fit to Screen" (cannot get lost off-screen!)
 - Ambient In-Situ Telemetry Reticles (zero screen-blocking drawers)
 - Distraction-free: bottom flight steps hidden by default in an optional toggle
 - Topographic Code Strata etched directly into the bedrock on ground zoom
@@ -407,28 +409,36 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
       </div>
     </div>
 
-    <!-- Altitude & Zoom Toolbar -->
+    <!-- Altitude, Live Zoom % & Camera Controls -->
     <div class="panel-glass rounded-full px-2.5 py-1.5 flex items-center gap-1 pointer-events-auto">
-      <button onclick="setAltitude(0.28)" class="px-2.5 py-1 hover:bg-slate-100 rounded-full text-slate-700 text-xs font-medium transition" title="Planet Orbit">
+      <button id="btnOrbit" onclick="setAltitude(0.28)" class="px-2.5 py-1 rounded-full text-xs font-medium transition text-slate-700 hover:bg-slate-100" title="Planet Orbit">
         Orbit
       </button>
-      <button onclick="setAltitude(0.85)" class="px-2.5 py-1 hover:bg-slate-100 rounded-full text-slate-700 text-xs font-medium transition" title="Module Continent">
+      <button id="btnContinent" onclick="setAltitude(0.85)" class="px-2.5 py-1 rounded-full text-xs font-medium transition text-slate-700 hover:bg-slate-100" title="Module Continent">
         Continent
       </button>
-      <button onclick="setAltitude(2.8)" class="px-2.5 py-1 bg-slate-100 text-slate-900 rounded-full text-xs font-semibold transition" title="Ground Code View">
+      <button id="btnCode" onclick="setAltitude(2.8)" class="px-2.5 py-1 rounded-full text-xs font-medium transition text-slate-700 hover:bg-slate-100" title="Ground Code View">
         Code
       </button>
+
       <div class="h-4 w-px bg-slate-200 mx-0.5"></div>
+
+      <!-- Live Zoom Level Badge -->
+      <span id="zoomPercent" class="font-mono text-[11px] font-bold text-slate-700 min-w-[38px] text-center px-1" title="Current Zoom">
+        35%
+      </span>
+
       <button onclick="zoomDelta(1.25)" class="w-7 h-7 flex items-center justify-center hover:bg-slate-100 text-slate-700 rounded-full text-xs font-bold" title="Zoom In">
         +
       </button>
       <button onclick="zoomDelta(0.8)" class="w-7 h-7 flex items-center justify-center hover:bg-slate-100 text-slate-700 rounded-full text-xs font-bold" title="Zoom Out">
         -
       </button>
-      <button onclick="resetCamera()" class="w-7 h-7 flex items-center justify-center hover:bg-slate-100 text-slate-700 rounded-full text-xs" title="Reset View">
-        ↺
+      <button onclick="fitToScreen()" class="px-2 py-1 flex items-center gap-1 hover:bg-slate-100 text-slate-700 rounded-full text-xs font-medium" title="Center & Fit All to Screen">
+        <span>🎯</span>
+        <span class="hidden md:inline text-[11px]">Center</span>
       </button>
-      <button onclick="toggleFullScreen()" class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-full text-xs font-medium transition ml-1" title="Fullscreen (F11)">
+      <button onclick="toggleFullScreen()" class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-full text-xs font-medium transition ml-0.5" title="Fullscreen (F11)">
         ⛶
       </button>
     </div>
@@ -436,6 +446,15 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
 
   <!-- 100% CLEAN CANVAS -->
   <canvas id="earthCanvas" class="w-full h-full"></canvas>
+
+  <!-- BOTTOM-LEFT RADAR / MINIMAP (Never lose your position on the planet) -->
+  <div id="radarWidget" class="absolute bottom-3 left-3 z-20 panel-glass rounded-2xl p-2 shadow-lg pointer-events-auto flex flex-col gap-1 transition-opacity duration-200 hover:opacity-100 opacity-90">
+    <div class="flex items-center justify-between px-1">
+      <span class="text-[9px] font-bold uppercase tracking-wider text-slate-500">Radar</span>
+      <span class="text-[8px] text-slate-400 font-mono">Click to Fly</span>
+    </div>
+    <canvas id="minimapCanvas" width="130" height="85" class="rounded-xl bg-slate-50/80 cursor-crosshair border border-slate-200"></canvas>
+  </div>
 
   <!-- OPTIONAL FLOATING DRAWER FOR AGENT FLIGHT PATH (Hidden by default, zero clutter) -->
   <aside id="historyDrawer" class="fixed bottom-14 right-4 max-w-sm w-full panel-glass rounded-2xl p-4 shadow-2xl transition-all duration-300 translate-y-[200%] pointer-events-auto z-30">
@@ -479,12 +498,16 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
 
     const canvas = document.getElementById("earthCanvas");
     const ctx = canvas.getContext("2d");
+    const minimap = document.getElementById("minimapCanvas");
+    const mmCtx = minimap.getContext("2d");
+
     let width = (canvas.width = window.innerWidth);
     let height = (canvas.height = window.innerHeight);
 
     window.addEventListener("resize", () => {{
       width = canvas.width = window.innerWidth;
       height = canvas.height = window.innerHeight;
+      clampCamera();
     }});
 
     // Camera State
@@ -518,6 +541,8 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
     const continentSpacingX = 900;
     const continentSpacingY = 750;
 
+    let worldMinX = Infinity, worldMaxX = -Infinity, worldMinY = Infinity, worldMaxY = -Infinity;
+
     // Generate organic coastline polygons with harmonic noise
     moduleList.forEach((modName, mi) => {{
       const col = mi % cols;
@@ -527,6 +552,11 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
 
       const files = DATA.modules[modName];
       const baseRadius = Math.max(200, Math.sqrt(files.length) * 115);
+
+      worldMinX = Math.min(worldMinX, cx - baseRadius);
+      worldMaxX = Math.max(worldMaxX, cx + baseRadius);
+      worldMinY = Math.min(worldMinY, cy - baseRadius);
+      worldMaxY = Math.max(worldMaxY, cy + baseRadius);
 
       const numPoints = 32;
       const coastlinePoints = [];
@@ -557,7 +587,69 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
       }});
     }});
 
+    // Ensure fallback bounds if empty
+    if (worldMinX === Infinity) {{
+      worldMinX = -400; worldMaxX = 400; worldMinY = -300; worldMaxY = 300;
+    }}
+
     let animTime = 0;
+
+    // CAMERA CLAMPING: Prevents the world from ever going off screen!
+    function clampCamera() {{
+      const screenLeft = panX + worldMinX * scale;
+      const screenRight = panX + worldMaxX * scale;
+      const screenTop = panY + worldMinY * scale;
+      const screenBottom = panY + worldMaxY * scale;
+
+      const minMargin = 120;
+      if (screenRight < minMargin) panX = minMargin - worldMaxX * scale;
+      if (screenLeft > width - minMargin) panX = (width - minMargin) - worldMinX * scale;
+      if (screenBottom < minMargin) panY = minMargin - worldMaxY * scale;
+      if (screenTop > height - minMargin) panY = (height - minMargin) - worldMinY * scale;
+    }}
+
+    // UPDATE ZOOM & ACTIVE ALTITUDE INDICATOR
+    function updateZoomUI() {{
+      const zPill = document.getElementById("zoomPercent");
+      if (zPill) zPill.textContent = Math.round(scale * 100) + "%";
+
+      const bOrb = document.getElementById("btnOrbit");
+      const bCont = document.getElementById("btnContinent");
+      const bCode = document.getElementById("btnCode");
+
+      if (bOrb && bCont && bCode) {{
+        [bOrb, bCont, bCode].forEach(b => {{
+          b.className = "px-2.5 py-1 rounded-full text-xs font-medium transition text-slate-700 hover:bg-slate-100";
+        }});
+
+        if (scale < 0.55) {{
+          bOrb.className = "px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-900 text-white shadow-sm";
+        }} else if (scale < 1.7) {{
+          bCont.className = "px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-900 text-white shadow-sm";
+        }} else {{
+          bCode.className = "px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-900 text-white shadow-sm";
+        }}
+      }}
+    }}
+
+    // FIT TO SCREEN: Instantly frames all continents centered with comfort margin
+    function fitToScreen() {{
+      const pad = 140;
+      const wSpan = (worldMaxX - worldMinX) + pad * 2;
+      const hSpan = (worldMaxY - worldMinY) + pad * 2;
+      const sX = width / wSpan;
+      const sY = height / hSpan;
+      scale = Math.min(Math.max(Math.min(sX, sY), 0.14), 1.0);
+
+      const midX = (worldMinX + worldMaxX) / 2;
+      const midY = (worldMinY + worldMaxY) / 2;
+      panX = width / 2 - midX * scale;
+      panY = height / 2 - midY * scale;
+
+      activeNode = null;
+      clampCamera();
+      updateZoomUI();
+    }}
 
     // Mouse Navigation
     canvas.addEventListener("wheel", (e) => {{
@@ -569,9 +661,12 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
       const worldX = (mouseX - panX) / scale;
       const worldY = (mouseY - panY) / scale;
 
-      scale = Math.min(Math.max(scale * zoomFactor, 0.12), 7.0);
+      scale = Math.min(Math.max(scale * zoomFactor, 0.12), 6.0);
       panX = mouseX - worldX * scale;
       panY = mouseY - worldY * scale;
+
+      clampCamera();
+      updateZoomUI();
     }});
 
     canvas.addEventListener("mousedown", (e) => {{
@@ -582,8 +677,9 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
 
     window.addEventListener("mousemove", (e) => {{
       if (isDragging) {{
-        panX += e.clientX - startX;
-        panY += e.clientY - startY;
+        panX = e.clientX - startX;
+        panY = e.clientY - startY;
+        clampCamera();
       }} else {{
         const worldX = (e.clientX - panX) / scale;
         const worldY = (e.clientY - panY) / scale;
@@ -617,19 +713,33 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
       }}
     }});
 
+    // Double-click to focus and zoom in
+    canvas.addEventListener("dblclick", (e) => {{
+      if (hoveredNode) {{
+        const pt = nodeCoords.get(hoveredNode.id);
+        if (pt) {{
+          scale = 2.8;
+          panX = width / 2 - pt.x * scale;
+          panY = height / 2 - pt.y * scale;
+          activeNode = hoveredNode;
+          clampCamera();
+          updateZoomUI();
+        }}
+      }} else {{
+        fitToScreen();
+      }}
+    }});
+
     function setAltitude(s) {{
       scale = s;
+      clampCamera();
+      updateZoomUI();
     }}
 
     function zoomDelta(factor) {{
-      scale = Math.min(Math.max(scale * factor, 0.12), 7.0);
-    }}
-
-    function resetCamera() {{
-      scale = 0.35;
-      panX = width / 2;
-      panY = height / 2;
-      activeNode = null;
+      scale = Math.min(Math.max(scale * factor, 0.12), 6.0);
+      clampCamera();
+      updateZoomUI();
     }}
 
     function toggleFullScreen() {{
@@ -640,6 +750,73 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
       }} else if (document.exitFullscreen) {{
         document.exitFullscreen();
       }}
+    }}
+
+    // RADAR / MINIMAP NAVIGATION
+    minimap.addEventListener("click", (e) => {{
+      const rect = minimap.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+
+      const mmW = minimap.width;
+      const mmH = minimap.height;
+
+      const pad = 120;
+      const wSpan = (worldMaxX - worldMinX) + pad * 2;
+      const hSpan = (worldMaxY - worldMinY) + pad * 2;
+
+      const worldTargetX = worldMinX - pad + (clickX / mmW) * wSpan;
+      const worldTargetY = worldMinY - pad + (clickY / mmH) * hSpan;
+
+      panX = width / 2 - worldTargetX * scale;
+      panY = height / 2 - worldTargetY * scale;
+      clampCamera();
+    }});
+
+    function renderRadar() {{
+      mmCtx.clearRect(0, 0, minimap.width, minimap.height);
+
+      const mmW = minimap.width;
+      const mmH = minimap.height;
+      const pad = 120;
+      const wSpan = (worldMaxX - worldMinX) + pad * 2;
+      const hSpan = (worldMaxY - worldMinY) + pad * 2;
+
+      function toMmX(wx) {{ return ((wx - (worldMinX - pad)) / wSpan) * mmW; }}
+      function toMmY(wy) {{ return ((wy - (worldMinY - pad)) / hSpan) * mmH; }}
+
+      // Draw mini-continents
+      continentLayout.forEach((cont) => {{
+        const mx = toMmX(cont.cx);
+        const my = toMmY(cont.cy);
+        const mr = (cont.baseRadius / wSpan) * mmW;
+
+        mmCtx.beginPath();
+        mmCtx.arc(mx, my, Math.max(3, mr), 0, Math.PI * 2);
+        mmCtx.fillStyle = cont.hasEpicenter ? "#fecdd3" : "#e2e8f0";
+        mmCtx.fill();
+        mmCtx.strokeStyle = cont.hasEpicenter ? "#f43f5e" : "#cbd5e1";
+        mmCtx.lineWidth = 1;
+        mmCtx.stroke();
+      }});
+
+      // Draw active viewport rectangle
+      const leftW = (0 - panX) / scale;
+      const rightW = (width - panX) / scale;
+      const topW = (0 - panY) / scale;
+      const bottomW = (height - panY) / scale;
+
+      const vx = toMmX(leftW);
+      const vy = toMmY(topW);
+      const vw = toMmX(rightW) - vx;
+      const vh = toMmY(bottomW) - vy;
+
+      mmCtx.strokeStyle = "#0f172a";
+      mmCtx.lineWidth = 1.5;
+      mmCtx.strokeRect(vx, vy, vw, vh);
+
+      mmCtx.fillStyle = "rgba(15, 23, 42, 0.08)";
+      mmCtx.fillRect(vx, vy, vw, vh);
     }}
 
     // History Drawer Toggle
@@ -920,6 +1097,7 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
       }});
 
       ctx.restore();
+      renderRadar();
       requestAnimationFrame(draw);
     }}
 
@@ -951,6 +1129,7 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
           panY = height / 2 - pt.y * scale;
           const nodeObj = DATA.nodes.find(n => n.id === st.file);
           if (nodeObj) activeNode = nodeObj;
+          clampCamera();
         }}
       }}
     }}
@@ -971,6 +1150,8 @@ def generate_code_earth_deck(repo_name, repo_root, file_data, tier_map, git_info
       }}
     }}
 
+    // Initial Fit-To-Screen on Launch
+    fitToScreen();
     requestAnimationFrame(draw);
     if (DATA.steps.length) setStep(0);
   </script>
